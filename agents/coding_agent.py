@@ -1,4 +1,4 @@
-
+from prompts.coding_prompt import CODING_PROMPT
 
 
 class CodingAgent:
@@ -9,5 +9,12 @@ class CodingAgent:
     def solve_task(self, task):
         if self.guard.can_call():
             self.guard.register_call()
-            return self.model.ask(task)
+            prompt = f"""
+{CODING_PROMPT}
+
+User Request:
+{task}
+"""
+
+        return self.model.ask(prompt)
         return "LLM limit reached in CodingAgent"
