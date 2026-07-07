@@ -114,18 +114,7 @@ streamlit run app.py
 * Groq API
 * Large Language Models (LLMs)
 
----
 
-## 📸 Screenshots
-
-Add screenshots of:
-
-* Home Screen
-* Code Generation
-* Debugging
-* Documentation
-* File Operations
-* Project Analysis
 
 ---
 
