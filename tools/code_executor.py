@@ -5,7 +5,7 @@ import os
 
 class CodeExecutor:
 
-    def execute(self, code):
+    def execute(self, code,user_input):
         code = code.strip()
 
         if code.startswith("```python"):
@@ -36,11 +36,11 @@ class CodeExecutor:
 
             result = subprocess.run(
                 ["python", filename],
+                input=user_input,
                 capture_output=True,
                 text=True,
                 timeout=10
             )
-
             os.remove(filename)
 
             if result.returncode == 0:

@@ -1,6 +1,7 @@
 
-
 from prompts.documentation_prompt import DOCUMENTATION_PROMPT
+
+
 class DocumentationAgent:
     def __init__(self, model, guard):
         self.model = model
@@ -9,11 +10,9 @@ class DocumentationAgent:
     def explain(self, task):
         if self.guard.can_call():
             self.guard.register_call()
-            prompt = f"""
-{DOCUMENTATION_PROMPT}
 
-User Request:
-{task}
-"""
-            return self.model.ask(task)
+            prompt = DOCUMENTATION_PROMPT.format_messages(input=task)
+
+            return self.model.ask(prompt)
+
         return "LLM limit reached in DocumentationAgent"

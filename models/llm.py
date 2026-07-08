@@ -1,27 +1,29 @@
-from groq import Groq
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+from langchain_groq import ChatGroq
 
-client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
-)
+load_dotenv()
 
 
 class LLM:
 
-    def ask(self, prompt):
+    def __init__(self):
 
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",   # or your preferred Groq model
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            temperature=0.3
+        self.llm = ChatGroq(
+            model="llama-3.3-70b-versatile",
+            api_key=os.getenv("GROQ_API_KEY"),
+            temperature=0.3,
         )
 
-        return response.choices[0].message.content
+    def ask(self, prompt):
+
+        # If prompt is a normal string
+        if isinstance(prompt, str):
+            response = self.llm.invoke(prompt)
+
+        # If prompt is already formatted LangChain messages
+        else:
+            response = self.llm.invoke(prompt)
+
+        return response.content

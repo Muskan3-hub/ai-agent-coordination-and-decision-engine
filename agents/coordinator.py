@@ -4,7 +4,7 @@ from agents.documentation_agent import DocumentationAgent
 from agents.planner import Planner
 from tools.logger import logger
 
-from tools.project_analyzer import ProjectAnalyzer
+from agents.project_analyzer_agent import ProjectAnalyzer
 from tools.code_executor import CodeExecutor
 from tools.file_tool import FileTool
 from tools.multi_file_parser import MultiFileParser
@@ -36,8 +36,26 @@ class CoordinatorAgent:
         # -------------------------
         # Tools (Non-LLM)
         # -------------------------
-        self.project_analyzer = ProjectAnalyzer()
+        self.project_analyzer = ProjectAnalyzer(model,guard)
+        # -------------------------
+        # Tools (Non-LLM)
+        # -------------------------
         self.executor = CodeExecutor()
+    def generate_test_input(self, code):
+
+        prompt = f"""
+Generate test input for this Python program.
+
+Return only values separated by new lines.
+
+Code:
+
+{code}
+"""
+
+        response = self.model.ask(prompt)
+
+        return response.replace("```", "").strip()
 
     def handle_task(self, task):
 
@@ -65,9 +83,18 @@ class CoordinatorAgent:
         ]
 
         project_keywords = [
-            "analyze project",
-            "project analysis",
-            "explain project"
+        "analyze project",
+        "analyze my project",
+        "project analysis",
+        "project structure",
+        "analyze project structure",
+        "scan project",
+        "inspect project",
+        "review project",
+        "project architecture",
+        "folder structure",
+        "codebase",
+        "repository"
         ]
 
         execution_keywords = [
@@ -95,51 +122,18 @@ class CoordinatorAgent:
         # =====================================================
         # 1. PROJECT ANALYSIS TOOL
         # =====================================================
-        if any(k in task_lower for k in project_keywords):
+        if (
+            ("project" in task_lower and "analyze" in task_lower)
+            or ("project" in task_lower and "structure" in task_lower)
+            or ("folder" in task_lower and "structure" in task_lower)
+            or ("codebase" in task_lower)
+            or ("repository" in task_lower)
+        ):
             logger.info("Routing -> Project Analyzer")
             agent_name = "Project Analyzer"
 
 
-            data = self.project_analyzer.analyze_project(".")
-
-            structure = "\n".join(data["structure"])
-
-            code_summary = ""
-
-            for f in data["files"]:
-                code_summary += (
-                    f"\n\nFILE: {f['file']}\n"
-                    f"{f['code'][:500]}\n"
-                )
-
-            prompt = f"""
-Previous Conversation:
-{recent_context}
-
-You are a senior software engineer.
-
-Analyze this Python project.
-
-Explain:
-
-1. Project purpose
-2. Folder structure
-3. Important files
-4. Design quality
-5. Possible improvements
-
-Project Structure:
-{structure}
-
-Project Code:
-{code_summary}
-
-Current User Request:
-{task}
-"""
-
-
-            response = self.coding.solve_task(prompt)
+            response = self.project_analyzer.analyze_project(".")
 
         # =====================================================
         # 2. DEBUGGING AGENT
@@ -473,8 +467,12 @@ User Request:
 
                 
 
-                output = self.executor.execute(code)
+                user_input = self.generate_test_input(code)
 
+                output = self.executor.execute(
+                    code,
+                    user_input
+                )
                 final_response = response
 
                 if "save_message" in locals():

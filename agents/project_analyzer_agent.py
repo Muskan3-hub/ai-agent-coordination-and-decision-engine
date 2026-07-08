@@ -1,49 +1,71 @@
-
 import os
+
+from prompts.project_analyzer_prompt import PROJECT_ANALYZER_PROMPT
+
 
 class ProjectAnalyzer:
 
-    def __init__(self):
+    def __init__(self, model, guard):
+        self.model = model
+        self.guard = guard
+
         self.ignore_dirs = {"venv", "__pycache__", ".git", "node_modules"}
-        self.max_file_size = 3000  # important for speed
+        self.max_file_size = 3000
 
     def analyze_project(self, root="."):
+
         structure = []
         file_summaries = []
 
         for folder, dirs, files in os.walk(root):
 
-            # remove ignored folders
             dirs[:] = [d for d in dirs if d not in self.ignore_dirs]
 
             for file in files:
+
                 if not file.endswith(".py"):
                     continue
 
                 path = os.path.join(folder, file)
 
-                # build structure
                 structure.append(path.replace(root, ""))
 
-                # read file safely
                 try:
                     with open(path, "r", encoding="utf-8") as f:
                         content = f.read()
 
                     content = content[:self.max_file_size]
 
-                    file_summaries.append({
-                        "file": path.replace(root, ""),
-                        "code": content
-                    })
+                    file_summaries.append(
+                        {
+                            "file": path.replace(root, ""),
+                            "code": content,
+                        }
+                    )
 
                 except Exception as e:
-                    file_summaries.append({
-                        "file": path.replace(root, ""),
-                        "code": f"Error reading file: {e}"
-                    })
+                    file_summaries.append(
+                        {
+                            "file": path.replace(root, ""),
+                            "code": f"Error reading file: {e}",
+                        }
+                    )
 
-        return {
-            "structure": structure,
-            "files": file_summaries
-        }
+        project_info = f"""
+Project Structure:
+{structure}
+
+Files:
+{file_summaries}
+"""
+
+        if self.guard.can_call():
+            self.guard.register_call()
+
+            prompt = PROJECT_ANALYZER_PROMPT.format_messages(
+                input=project_info
+            )
+
+            return self.model.ask(prompt)
+
+        return "LLM limit reached in ProjectAnalyzer"

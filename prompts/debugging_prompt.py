@@ -1,4 +1,10 @@
-DEBUGGING_PROMPT = """
+from langchain_core.prompts import ChatPromptTemplate
+
+DEBUGGING_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
 You are an expert debugging assistant.
 
 Your responsibilities:
@@ -8,3 +14,10 @@ Your responsibilities:
 - Suggest improvements.
 - Return corrected code when needed.
 """
+        ),
+        (
+            "human",
+            "{input}"
+        )
+    ]
+)

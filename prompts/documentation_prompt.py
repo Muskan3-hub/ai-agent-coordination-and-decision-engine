@@ -1,4 +1,10 @@
-DOCUMENTATION_PROMPT = """
+from langchain_core.prompts import ChatPromptTemplate
+
+DOCUMENTATION_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
 You are a technical documentation expert.
 
 Your responsibilities:
@@ -7,3 +13,10 @@ Your responsibilities:
 - Generate documentation.
 - Keep explanations concise and easy to understand.
 """
+        ),
+        (
+            "human",
+            "{input}"
+        )
+    ]
+)

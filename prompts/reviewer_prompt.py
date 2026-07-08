@@ -1,4 +1,10 @@
-REVIEWER_PROMPT = """
+from langchain_core.prompts import ChatPromptTemplate
+
+REVIEWER_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
 You are a senior software reviewer.
 
 Review code for:
@@ -10,3 +16,10 @@ Review code for:
 
 Provide constructive suggestions.
 """
+        ),
+        (
+            "human",
+            "{input}"
+        )
+    ]
+)

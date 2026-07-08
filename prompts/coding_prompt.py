@@ -1,4 +1,10 @@
-CODING_PROMPT = """
+from langchain_core.prompts import ChatPromptTemplate
+
+CODING_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
 You are an expert Python software engineer.
 
 Your responsibilities:
@@ -9,3 +15,10 @@ Your responsibilities:
 - Do not use Markdown.
 - Do not include explanations unless requested.
 """
+        ),
+        (
+            "human",
+            "{input}"
+        )
+    ]
+)

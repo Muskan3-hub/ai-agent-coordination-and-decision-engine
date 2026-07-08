@@ -1,3 +1,5 @@
+from prompts.planner_prompt import PLANNER_PROMPT
+
 
 class Planner:
 
@@ -9,28 +11,14 @@ class Planner:
 
         self.guard.reset()
 
-        prompt = f"""
-You are an expert AI software planning agent.
-
-Break the user's request into a clear execution plan.
-
-Rules:
-- Return ONLY the plan.
-- Do NOT write any code.
-- Keep the plan concise.
-- Number each step.
-- Focus on how to solve the task.
-
+        task = f"""
 Previous Conversation:
 {context}
 
 User Request:
 {user_input}
-
-Format:
-1.
-2.
-3.
 """
+
+        prompt = PLANNER_PROMPT.format_messages(input=task)
 
         return self.model.ask(prompt)
