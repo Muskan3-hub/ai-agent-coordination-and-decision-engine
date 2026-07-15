@@ -1,11 +1,17 @@
+from tools.base_tool import BaseTool
 import subprocess
 import tempfile
 import os
 
 
-class CodeExecutor:
+class CodeExecutor(BaseTool):
+    
 
-    def execute(self, code,user_input):
+    def execute(self, input_data):
+
+        code = input_data.get("code")
+        user_input = input_data.get("user_input", "")
+
         code = code.strip()
 
         if code.startswith("```python"):
