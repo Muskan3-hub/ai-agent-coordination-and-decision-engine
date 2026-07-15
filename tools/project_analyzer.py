@@ -1,11 +1,16 @@
+from tools.base_tool import BaseTool
 import os
 
-class ProjectAnalyzer:
+class ProjectAnalyzer(BaseTool):
 
     def __init__(self):
         self.ignore_dirs = {"venv", "__pycache__", ".git", "node_modules"}
         self.max_file_size = 3000  # important for speed
+    def execute(self, input_data):
 
+        root = input_data.get("root", ".")
+
+        return self.analyze_project(root)
     def analyze_project(self, root="."):
         structure = []
         file_summaries = []
