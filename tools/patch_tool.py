@@ -1,6 +1,19 @@
+from tools.base_tool import BaseTool
 import os
 
-class PatchTool:
+class PatchTool(BaseTool):
+    def execute(self, input_data):
+
+        file_path = input_data.get("file_path")
+        old_code = input_data.get("old_code")
+        new_code = input_data.get("new_code")
+
+
+        return self.apply_patch(
+            file_path,
+            old_code,
+            new_code
+        )
 
     @staticmethod
     def apply_patch(file_path, old_code, new_code):
