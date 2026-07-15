@@ -1,7 +1,8 @@
+from tools.base_tool import BaseTool
 import os
 
 
-class FileTool:
+class FileTool(BaseTool):
 
     @staticmethod
     def write_file(file_path, content):
@@ -49,12 +50,41 @@ class FileTool:
 
         return "File not found."
     
-    
+    def execute(self, input_data):
+
+        action = input_data.get("action")
+
+
+        if action == "read":
+
+            return self.read_file(
+                input_data["path"]
+            )
+
+
+        elif action == "write":
+
+            return self.write_file(
+                input_data["path"],
+                input_data["content"]
+            )
+
+
+        elif action == "delete":
+
+            return self.delete_file(
+                input_data["path"]
+            )
+
+
+        return "Invalid file action"
+        
+        
     @staticmethod
     def exists(file_path):
         """Check whether a file exists."""
 
-        return os.path.exists(file_path)
+        return os.path.exists(file_path)    
     @staticmethod
     def write_multiple_files(file_blocks):
         """
