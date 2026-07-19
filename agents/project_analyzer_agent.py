@@ -1,5 +1,5 @@
 import os
-
+from tools.tool_manager import ToolManager
 from prompts.project_analyzer_prompt import PROJECT_ANALYZER_PROMPT
 
 
@@ -8,9 +8,19 @@ class ProjectAnalyzer:
     def __init__(self, model, guard):
         self.model = model
         self.guard = guard
+        self.tool_manager = ToolManager()
 
         self.ignore_dirs = {"venv", "__pycache__", ".git", "node_modules"}
         self.max_file_size = 3000
+    
+    def use_tool(self, task, tool_input):
+
+        tool = self.tool_manager.select_tool(task)
+
+        if tool is None:
+            return "No suitable tool found."
+
+        return tool.execute(tool_input)
 
     def analyze_project(self, root="."):
 
