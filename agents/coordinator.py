@@ -10,6 +10,7 @@ from tools.file_tool import FileTool
 from tools.multi_file_parser import MultiFileParser
 from tools.patch_parser import PatchParser
 from tools.patch_tool import PatchTool
+from tools.action_validator import ActionValidator
 import time
 
 
@@ -210,6 +211,15 @@ Code:
                 )
 
                 results.append(result)
+
+                validation = ActionValidator.validate_patch(
+                    p["file"],
+                    p["new"]
+                )
+
+                results.append(
+                    f"Validation: {validation['message']}"
+                )
 
             return {
                 "response": "\n".join(results),
