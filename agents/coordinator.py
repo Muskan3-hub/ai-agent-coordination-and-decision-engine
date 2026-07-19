@@ -105,12 +105,25 @@ Code:
         ]
 
         file_keywords = [
-            "save file",
-            "create file",
-            "write file",
-            "read file",
-            "update file",
-            "delete file"
+            "read",
+            "write",
+            "save",
+            "create",
+            "update",
+            "delete",
+            "file",
+            ".py",
+            ".txt",
+            ".md",
+            ".json",
+            ".csv"
+        ]
+        patch_keywords = [
+            "patch",
+            "modify",
+            "replace",
+            "change",
+            "edit"
         ]
 
         # Reset API guard
@@ -152,9 +165,59 @@ Code:
             agent_name = "Documentation Agent"
 
             response = self.docs.explain(task)
+        # =====================================================
+        # PATCH TOOL
+        # =====================================================
+        elif any(k in task_lower for k in patch_keywords):
+            logger.info("Routing -> Patch Tool")
+            agent_name = "Patch Tool"
+
+            prompt = f"""
+        Convert this modification request into patch format.
+
+        User request:
+        {task}
+
+        Return ONLY:
+
+        PATCH: filename.py
+
+        REPLACE:
+        old code
+
+        WITH:
+        new code
+        """
+
+            patch_response = self.coding.solve_task(prompt)
+
+            patches = PatchParser.parse(patch_response)
+
+            if not patches:
+                return {
+                    "response": "Could not generate patch instructions.",
+                    "agent": agent_name
+                }
+
+            results = []
+
+            for p in patches:
+
+                result = PatchTool.apply_patch(
+                    p["file"],
+                    p["old"],
+                    p["new"]
+                )
+
+                results.append(result)
+
+            return {
+                "response": "\n".join(results),
+                "agent": agent_name
+            }
 
         # =====================================================
-       # =====================================================
+        # =====================================================
         # 4. FILE TOOL
         # =====================================================
         elif any(k in task_lower for k in file_keywords):
@@ -164,19 +227,29 @@ Code:
             # -------------------------
             # READ FILE
             # -------------------------
-            if "read file" in task_lower:
+            if "read" in task_lower:
 
                 filename = None
 
                 for word in task.replace(",", " ").split():
-                    if word.endswith(".py"):
+
+                    if any(
+                        word.endswith(ext)
+                        for ext in [
+                            ".py",
+                            ".md",
+                            ".txt",
+                            ".json",
+                            ".csv"
+                        ]
+                    ):
                         filename = word
                         break
 
                 if filename is None:
-                    return{
-                        "response":FileTool.read_file(filename),
-                        "agent":agent_name
+                    return {
+                        "response": "No filename specified.",
+                        "agent": agent_name
                     }
 
                 if FileTool.exists(filename):
@@ -398,6 +471,8 @@ User Request:
             # -------------------------
             # PATCH SYSTEM (ADD HERE)
             # -------------------------
+            print("LLM RESPONSE:")
+            print(response)
             if "PATCH:" in response:
 
                 patches = PatchParser.parse(response)
@@ -469,10 +544,18 @@ User Request:
 
                 user_input = self.generate_test_input(code)
 
-                output = self.executor.execute(
-                    code,
-                    user_input
+                result = self.coding.use_tool(
+                    "run python code",
+                    {
+                        "code": code,
+                        "user_input": user_input
+                    }
                 )
+
+                if result["success"]:
+                    output = result["result"]
+                else:
+                    output = result["message"]
                 final_response = response
 
                 if "save_message" in locals():

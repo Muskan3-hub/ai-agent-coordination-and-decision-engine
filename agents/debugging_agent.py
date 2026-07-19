@@ -7,6 +7,9 @@ class DebuggingAgent:
         self.tool_manager = ToolManager()
         self.model = model
         self.guard = guard
+    def use_tool(self, task, tool_input):
+
+        return self.tool_manager.execute_tool(task, tool_input)
 
     def debug_code(self, task):
         if self.guard.can_call():
@@ -17,13 +20,4 @@ class DebuggingAgent:
             return self.model.ask(prompt)
 
         return "LLM limit reached in DebuggingAgent"
-    def use_tool(self, task, tool_input):
-
-        tool = self.tool_manager.select_tool(task)
-
-
-        if tool is None:
-            return "No suitable tool found."
-
-
-        return tool.execute(tool_input)
+    

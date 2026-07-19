@@ -2,6 +2,7 @@ from tools.file_tool import FileTool
 from tools.code_executor import CodeExecutor
 from tools.patch_tool import PatchTool
 from tools.project_analyzer import ProjectAnalyzer
+from tools.logger import logger
 
 
 
@@ -75,3 +76,46 @@ class ToolManager:
 
 
         return None
+    def execute_tool(self, task, tool_input):
+
+        try:
+
+            tool = self.select_tool(task)
+
+            if tool is None:
+
+                logger.warning(f"No suitable tool found for task: {task}")
+
+                return {
+                    "success": False,
+                    "tool": None,
+                    "message": "No suitable tool found."
+                }
+
+            logger.info(
+                f"Executing {tool.__class__.__name__} | Task: {task}"
+            )
+
+            result = tool.execute(tool_input)
+
+            logger.info(
+                f"{tool.__class__.__name__} executed successfully."
+            )
+
+            return {
+                "success": True,
+                "tool": tool.__class__.__name__,
+                "result": result
+            }
+
+        except Exception as e:
+
+            logger.error(
+                f"Tool execution failed: {str(e)}"
+            )
+
+            return {
+                "success": False,
+                "tool": tool.__class__.__name__ if 'tool' in locals() else None,
+                "message": str(e)
+            }

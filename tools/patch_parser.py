@@ -14,6 +14,9 @@ class PatchParser:
 
             lines = block.strip().split("\n")
 
+            if not lines:
+                continue
+
             file_name = lines[0].strip()
 
             old_code = ""
@@ -37,10 +40,22 @@ class PatchParser:
                 elif mode == "new":
                     new_code += line + "\n"
 
+
+            # Remove extra spaces safely
+            old_code = old_code.strip() if old_code else ""
+            new_code = new_code.strip() if new_code else ""
+
+            print("DEBUG PATCH DATA:")
+            print("FILE:", file_name)
+            print("OLD:", old_code)
+            print("NEW:", new_code)
+
+
             patches.append({
                 "file": file_name,
-                "old": old_code.strip(),
-                "new": new_code.strip()
+                "old": old_code,
+                "new": new_code
             })
+
 
         return patches

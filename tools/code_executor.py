@@ -12,6 +12,9 @@ class CodeExecutor(BaseTool):
         code = input_data.get("code")
         user_input = input_data.get("user_input", "")
 
+        if code is None:
+            return "No code provided"
+
         code = code.strip()
 
         if code.startswith("```python"):

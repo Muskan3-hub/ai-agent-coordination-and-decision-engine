@@ -11,14 +11,7 @@ class CodingAgent:
     
     def use_tool(self, task, tool_input):
 
-        tool = self.tool_manager.select_tool(task)
-
-
-        if tool is None:
-            return "No suitable tool found."
-
-
-        return tool.execute(tool_input)
+        return self.tool_manager.execute_tool(task, tool_input)
 
 
 

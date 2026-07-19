@@ -1,4 +1,5 @@
 from tools.base_tool import BaseTool
+from tools.security_guard import check_file_permission
 import os
 
 
@@ -12,6 +13,7 @@ class FileTool(BaseTool):
 
         if folder:
             os.makedirs(folder, exist_ok=True)
+        
 
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
