@@ -3,7 +3,7 @@ from tools.code_executor import CodeExecutor
 from tools.patch_tool import PatchTool
 from tools.project_analyzer import ProjectAnalyzer
 from tools.logger import logger
-
+from tools.execution_tracker import ExecutionTracker
 
 
 class ToolManager:
@@ -98,9 +98,19 @@ class ToolManager:
 
             result = tool.execute(tool_input)
 
+
+            ExecutionTracker.log(
+                tool.__class__.__name__,
+                tool_input,
+                "SUCCESS",
+                result
+            )
+
+
             logger.info(
                 f"{tool.__class__.__name__} executed successfully."
             )
+
 
             return {
                 "success": True,
@@ -109,6 +119,14 @@ class ToolManager:
             }
 
         except Exception as e:
+
+            ExecutionTracker.log(
+                tool.__class__.__name__ if 'tool' in locals() else "Unknown",
+                tool_input,
+                "FAILED",
+                str(e)
+            )
+
 
             logger.error(
                 f"Tool execution failed: {str(e)}"
