@@ -4,6 +4,7 @@ from tools.patch_tool import PatchTool
 from tools.project_analyzer import ProjectAnalyzer
 from tools.logger import logger
 from tools.execution_tracker import ExecutionTracker
+from tools.github_tool import GitHubTool
 
 
 class ToolManager:
@@ -19,7 +20,9 @@ class ToolManager:
 
             "patch": PatchTool(),
 
-            "project_analyzer": ProjectAnalyzer()
+            "project_analyzer": ProjectAnalyzer(),
+
+            "github": GitHubTool()
 
         }
 
@@ -72,6 +75,15 @@ class ToolManager:
         ]):
 
             return self.tools["file"]
+        elif any(word in task for word in [
+            "github",
+            "repository",
+            "repo",
+            "stars",
+            "forks"
+        ]):
+
+            return self.tools["github"]
 
 
 
