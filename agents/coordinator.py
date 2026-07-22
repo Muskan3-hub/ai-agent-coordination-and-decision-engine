@@ -1,3 +1,4 @@
+from agents.decision_engine import DecisionEngine
 from agents.coding_agent import CodingAgent
 from agents.debugging_agent import DebuggingAgent
 from agents.documentation_agent import DocumentationAgent
@@ -11,7 +12,13 @@ from tools.multi_file_parser import MultiFileParser
 from tools.patch_parser import PatchParser
 from tools.patch_tool import PatchTool
 from tools.action_validator import ActionValidator
+from tools.base_tool import BaseTool
+from tools.github_tool import GitHubTool
+import requests
+
+
 import time
+import re
 
 
 class CoordinatorAgent:
@@ -25,6 +32,8 @@ class CoordinatorAgent:
         self.debugging = DebuggingAgent(model, guard)
         self.docs = DocumentationAgent(model, guard)
         self.planner=Planner(model, guard)
+        self.project_analyzer = ProjectAnalyzer(model,guard)
+        self.decision_engine = DecisionEngine()
 
 
         # -------------------------
@@ -34,29 +43,41 @@ class CoordinatorAgent:
         self.guard = guard
         self.memory= memory
 
-        # -------------------------
-        # Tools (Non-LLM)
-        # -------------------------
-        self.project_analyzer = ProjectAnalyzer(model,guard)
+        
+        
         # -------------------------
         # Tools (Non-LLM)
         # -------------------------
         self.executor = CodeExecutor()
+        self.github_tool = GitHubTool()
     def generate_test_input(self, code):
 
         prompt = f"""
-Generate test input for this Python program.
+You are generating test inputs for a Python program.
 
-Return only values separated by new lines.
+Rules:
+- Return ONLY the input values.
+- Do NOT explain anything.
+- Do NOT use markdown.
+- One input per line.
+- Use realistic values.
+- If the program asks for a positive integer, use 10.
+- If it asks for yes/no after execution, use no.
+- Never return 0 unless the program specifically requires it.
 
-Code:
+Python Program:
 
 {code}
 """
 
         response = self.model.ask(prompt)
 
-        return response.replace("```", "").strip()
+        response = response.replace("```", "").strip()
+
+        print("GENERATED TEST INPUT:")
+        print(response)
+
+        return response
 
     def handle_task(self, task):
 
@@ -65,84 +86,48 @@ Code:
         logger.info(f"User Request:{task}")
         recent_context= self.memory.get_recent_context()
 
-        # -------------------------
-        # Keywords
-        # -------------------------
-        debug_keywords = [
-            "debug",
-            "fix",
-            "bug",
-            "error",
-            "traceback"
-        ]
-
-        doc_keywords = [
-            "explain",
-            "what is",
-            "how",
-            "tutorial"
-        ]
-
-        project_keywords = [
-        "analyze project",
-        "analyze my project",
-        "project analysis",
-        "project structure",
-        "analyze project structure",
-        "scan project",
-        "inspect project",
-        "review project",
-        "project architecture",
-        "folder structure",
-        "codebase",
-        "repository"
-        ]
-
-        execution_keywords = [
-            "run",
-            "execute",
-            "output",
-            "run this code"
-        ]
-
-        file_keywords = [
-            "read",
-            "write",
-            "save",
-            "create",
-            "update",
-            "delete",
-            "file",
-            ".py",
-            ".txt",
-            ".md",
-            ".json",
-            ".csv"
-        ]
-        patch_keywords = [
-            "patch",
-            "modify",
-            "replace",
-            "change",
-            "edit"
-        ]
+        decision = self.decision_engine.decide(task)
 
         # Reset API guard
         self.guard.reset()
 
         response = ""
         agent_name = "Unknown"
+        # =====================================================
+        # 0. GITHUB TOOL
+        # =====================================================
+
+        if decision == "github":
+
+            logger.info("Routing -> GitHub Tool")
+            agent_name = "GitHub Tool"
+
+
+            parts = task_lower.split("/")
+
+            if len(parts) == 2:
+
+                owner = parts[0].split()[-1]
+                repo = parts[1]
+
+                result = self.github_tool.execute(
+                    {
+                        "action": "repo_info",
+                        "owner": owner,
+                        "repo": repo
+                    }
+                )
+
+                response = str(result)
+
+            else:
+
+                response = "Please provide repository in owner/repository format."
 
         # =====================================================
-        # 1. PROJECT ANALYSIS TOOL
+        # 1. PROJECT ANALYSIS AGENT
         # =====================================================
-        if (
-            ("project" in task_lower and "analyze" in task_lower)
-            or ("project" in task_lower and "structure" in task_lower)
-            or ("folder" in task_lower and "structure" in task_lower)
-            or ("codebase" in task_lower)
-            or ("repository" in task_lower)
-        ):
+        elif decision == "project":
             logger.info("Routing -> Project Analyzer")
             agent_name = "Project Analyzer"
 
@@ -152,7 +137,7 @@ Code:
         # =====================================================
         # 2. DEBUGGING AGENT
         # =====================================================
-        elif any(k in task_lower for k in debug_keywords):
+        elif decision == "debug":
             logger.info("Routing -> Debugging Agent")
             agent_name = "Debugging Agent"
             response = self.debugging.debug_code(task)
@@ -161,15 +146,27 @@ Code:
         # =====================================================
         # 3. DOCUMENTATION AGENT
         # =====================================================
-        elif any(k in task_lower for k in doc_keywords):
+        elif decision == "documentation":
             logger.info("Routing -> Documentation Agent")
             agent_name = "Documentation Agent"
 
             response = self.docs.explain(task)
+        
+        # =====================================================
+        # PLANNER AGENT
+        # =====================================================
+        elif decision == "planner":
+            logger.info("Routing -> Planner Agent")
+            agent_name = "Planner Agent"
+
+            response = self.planner.execute(
+                task,
+                recent_context
+            )
         # =====================================================
         # PATCH TOOL
         # =====================================================
-        elif any(k in task_lower for k in patch_keywords):
+        elif decision == "patch":
             logger.info("Routing -> Patch Tool")
             agent_name = "Patch Tool"
 
@@ -230,7 +227,7 @@ Code:
         # =====================================================
         # 4. FILE TOOL
         # =====================================================
-        elif any(k in task_lower for k in file_keywords):
+        elif decision == "file":
             logger.info("Routing -> File Tool")
             agent_name = "File Tool"
 
@@ -373,7 +370,7 @@ Previous Conversation:
 Current User Request:
 {task}
 """
-
+            
             response = self.coding.solve_task(prompt)
 
             try:
@@ -422,7 +419,7 @@ Current User Request:
             # -------------------------
             # PLANNING STEP
             # -------------------------
-            plan = self.planner.execute(task, recent_context)
+            plan = ""
 
            
             prompt = f"""
@@ -464,7 +461,6 @@ Rules:
 - Do NOT use Markdown.
 - Do NOT use ```python or ``` fences.
 
-
 Plan:
 {plan}
 
@@ -474,7 +470,7 @@ Previous Conversation:
 User Request:
 {task}
 """
-
+            
             response = self.coding.solve_task(prompt)
            
 
@@ -523,7 +519,8 @@ User Request:
         # =====================================================
         # 6. CODE EXECUTION TOOL
         # =====================================================
-        if any(k in task_lower for k in execution_keywords):
+        if decision == "execution":
+            
             agent_name = "Code Executor"
 
             try:

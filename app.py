@@ -81,7 +81,10 @@ for message in st.session_state.messages:
 
     with st.chat_message(message["role"]):
 
-        st.markdown(message["content"])
+        if message.get("type") == "code":
+            st.code(message["content"], language="python")
+        else:
+            st.markdown(message["content"])
 
 uploaded_file = st.file_uploader(
     "📂 Upload a Python file",
@@ -141,6 +144,11 @@ if prompt:
 
             response = result["response"]
             agent = result["agent"]
+            # Save conversation to long-term memory
+            memory.add_conversation(
+                user_message=prompt,
+                assistant_message=response
+            )
             st.info(f"🧠 Agent Used: {agent}")
             
 
@@ -164,11 +172,8 @@ if prompt:
                     display_response.splitlines()[1:]
                 ).strip()
 
-            if (
-                "def " in display_response
-                or "import " in display_response
-                or "class " in display_response
-                or "print(" in display_response
+            if display_response.strip().startswith(
+                ("def ", "class ", "import ", "from ")
             ):
                 st.code(display_response, language="python")
             else:
@@ -188,9 +193,22 @@ if prompt:
             use_container_width=True
         )
 
+    message_type = "text"
+
+    if display_response.strip().startswith(
+        (
+            "def ",
+            "class ",
+            "import ",
+            "from "
+        )
+    ):
+        message_type = "code"
+
     st.session_state.messages.append(
         {
             "role": "assistant",
-            "content": response
+            "content": response,
+            "type": message_type
         }
-    ) 
+    )

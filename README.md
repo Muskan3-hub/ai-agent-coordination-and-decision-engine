@@ -1,85 +1,348 @@
-
-# 🤖 Multi-AI-Agent Coding Assistant
+# 🤖 Multi-AI-Agent Coding Assistant with Intelligent Decision Engine
 
 ## 📌 Project Overview
 
-The **Multi-AI-Agent Coding Assistant** is a Streamlit-based intelligent coding assistant built using a modular multi-agent architecture.
+The **Multi-AI-Agent Coding Assistant with Intelligent Decision Engine** is an intelligent software development platform designed to assist developers in coding, debugging, documentation, planning, and project analysis tasks.
 
-The system uses **LangChain for LLM integration, prompt management, and AI workflow handling**. Instead of depending on a single AI model for every task, the application uses multiple specialized AI agents coordinated by a central **Coordinator Agent**.
+The system is built using **Python, Streamlit, LangChain, and ChatGroq** and follows a modular **Multi-Agent AI Architecture** where multiple specialized AI agents collaborate to solve different software engineering problems.
 
-The system intelligently routes user requests to dedicated agents such as Coding, Debugging, Documentation, Planning, and Project Analysis agents. It also integrates tools for file management, project analysis, code execution, and automated code modification.
+Unlike traditional AI assistants that depend on a single AI model for all tasks, this project separates:
+
+* 🧠 Decision Making
+* 🤝 Workflow Coordination
+* 🤖 Task Execution
+* 🛠 Tool Interaction
+* 🔐 Security Validation
+
+into independent components.
+
+The system consists of:
+
+* 🧠 Intelligent Decision Engine
+* 🤝 Coordinator Agent
+* 🤖 Specialized AI Agents
+* 🛠 Enterprise Tool Framework
+* 🔐 Security Guard Layer
+* 💾 Hybrid Memory System
+* 📊 Validation & Execution Monitoring System
+
+The **Decision Engine** analyzes user requests, understands the intent, selects the required AI agent, and determines whether external tools are required.
+
+The **Coordinator Agent** manages the complete workflow by assigning tasks to specialized agents, communicating between components, invoking tools, maintaining memory, validating actions, and generating the final response.
+
+The architecture is designed to be scalable, maintainable, and extendable with new AI agents and enterprise tools.
+
+---
+
+# 🎯 Objectives
+
+The main objectives of this project are:
+
+* Build an intelligent Multi-AI Coding Assistant.
+* Implement an AI-based Decision Engine for task routing.
+* Develop multiple specialized AI agents.
+* Enable AI agents to perform real coding operations using tools.
+* Provide secure execution and validation of AI-generated actions.
+* Maintain conversation history and tool execution records.
+* Create a modular architecture that can be extended easily.
 
 ---
 
 # ✨ Features
 
-* 💻 AI Code Generation
-* 🐞 AI Code Debugging
-* 📖 Code Explanation and Documentation
-* 📝 Planning Agent for Software Development Tasks
-* 📊 Project Structure Analysis
-* 📂 File Creation, Reading, Updating, and Deletion
-* ▶️ Python Code Execution with Dynamic Test Input
-* 🔧 Patch-based Code Modification
-* 📁 Multi-file Code Generation
-* 💬 ChatGPT-style Streamlit Interface
-* 🧠 JSON-based Conversation Memory
-* 🔗 LangChain ChatGroq Integration
-* 📝 LangChain Prompt Templates
-* ⏱ Execution Time Monitoring
-* 📥 Download Generated Responses
+## 🤖 Multi-Agent Intelligence
+
+The system contains multiple specialized AI agents:
+
+### 💻 Coding Agent
+
+* Generates programming solutions.
+* Creates new code files.
+* Implements software features.
+
+### 🐞 Debugging Agent
+
+* Identifies programming errors.
+* Explains bugs.
+* Suggests corrections.
+
+### 📖 Documentation Agent
+
+* Generates documentation.
+* Explains code functionality.
+* Creates project descriptions.
+
+### 📝 Planner Agent
+
+* Breaks complex software tasks into smaller steps.
+* Creates development plans.
+
+### 📊 Project Analyzer Agent
+
+* Analyzes project structure.
+* Provides project insights.
 
 ---
 
-# 🏗️ Architecture
+# 🧠 Intelligent Decision Engine
+
+The Decision Engine is responsible for:
+
+* Understanding user intent.
+* Classifying the requested task.
+* Selecting the appropriate AI agent.
+* Selecting required tools.
+* Creating an execution plan.
+
+Example:
 
 ```
+User:
+"Fix this Python error"
 
-User
+Decision Engine:
+Task Type → Debugging
 
-↓
+Selected Agent:
+Debugging Agent
+```
 
-Streamlit Chat Interface
+---
 
-↓
+# 🤝 Coordinator Agent
 
-Coordinator Agent
+The Coordinator Agent acts as the workflow management layer.
 
-↓
+Responsibilities:
 
-Specialized AI Agents
+* Receives decisions from the Decision Engine.
+* Communicates with AI agents.
+* Manages agent execution.
+* Invokes tools through Tool Manager.
+* Collects outputs.
+* Returns final responses.
 
-├── Coding Agent
-├── Debugging Agent
-├── Documentation Agent
-├── Planner Agent
-└── Project Analyzer Agent
+---
 
-↓
+# 🛠 Enterprise Tool Integration
 
-LangChain Prompt Templates
+The system provides an enterprise-level tool framework.
 
-↓
+## 📂 File Tool
 
-ChatGroq LLM Integration
+Capabilities:
 
-↓
+* Create files
+* Read files
+* Update files
+* Delete files
 
-Tools Layer
+---
 
-├── File Tool
-├── Project Analyzer
-├── Code Executor
-├── Patch Tool
-└── Multi File Parser
+## ▶️ Code Executor
 
-↓
+Capabilities:
 
-Memory Layer
+* Execute Python programs.
+* Capture output.
+* Handle execution errors.
 
-├── JSON Conversation Memory
-└── History Storage
+---
 
+## 🔧 Patch Tool
+
+Capabilities:
+
+* Modify existing files.
+* Apply targeted code changes.
+* Prevent unnecessary rewriting.
+
+---
+
+## 📁 Multi File Parser
+
+Capabilities:
+
+* Handle multiple file operations.
+* Parse structured code changes.
+
+---
+
+## 🔍 Project Analyzer Tool
+
+Capabilities:
+
+* Analyze project folders.
+* Identify files and structure.
+* Generate project summaries.
+
+---
+
+## 🌐 GitHub Tool
+
+Capabilities:
+
+* Analyze GitHub repositories.
+* Extract repository information.
+
+---
+
+# 🔐 Security Guard Layer
+
+The Security Guard provides protection while executing AI-generated actions.
+
+Responsibilities:
+
+* Validate AI-generated actions.
+* Prevent unsafe operations.
+* Check tool execution requests.
+* Control access to sensitive operations.
+* Improve reliability of automated workflows.
+
+The Security Guard works with the Tool Manager before executing external actions.
+
+Workflow:
+
+```
+AI Agent Request
+
+        ↓
+
+Security Guard Validation
+
+        ↓
+
+Tool Manager
+
+        ↓
+
+Tool Execution
+```
+
+---
+
+# 📊 Validation & Monitoring System
+
+The system includes monitoring components:
+
+## Action Validator
+
+* Checks whether requested actions are valid.
+* Prevents incorrect execution.
+
+## Execution Tracker
+
+* Tracks tool execution details.
+* Records execution status.
+
+## Logger
+
+* Stores system events.
+* Helps debugging and monitoring.
+
+---
+
+# 💾 Hybrid Memory System
+
+The project implements memory management for maintaining context.
+
+Components:
+
+## Short-Term Memory
+
+Stores:
+
+* Current conversation context.
+* Active task information.
+
+## Long-Term Memory
+
+Stores:
+
+* Previous interactions.
+* Tool execution history.
+
+Files:
+
+```
+history.json
+
+tool_execution_history.json
+```
+
+---
+
+# 🏗️ System Architecture
+
+```
+                         User
+                           │
+                           ▼
+                Streamlit Chat Interface
+                           │
+                           ▼
+                  Intelligent Decision Engine
+              (Intent Detection & Task Routing)
+                           │
+                           ▼
+                    Coordinator Agent
+              (Workflow Orchestration Layer)
+                           │
+          ┌────────────────┼────────────────┐
+          │                │                │
+          ▼                ▼                ▼
+
+ Specialized AI Agents       Enterprise Tools
+
+          │                      │
+          │                      ▼
+          │              Security Guard
+          │                      │
+          │                      ▼
+          │              Tool Manager
+          │
+          ▼
+
+ ┌───────────────────────────────────────┐
+ │ Coding Agent                          │
+ │ Debugging Agent                       │
+ │ Documentation Agent                   │
+ │ Planner Agent                         │
+ │ Project Analyzer Agent                │
+ └───────────────────────────────────────┘
+
+                           │
+                           ▼
+
+                  LangChain Prompt System
+
+                           │
+                           ▼
+
+                     ChatGroq LLM
+
+                           │
+                           ▼
+
+              Validation & Monitoring Layer
+
+        ┌─────────────────────────────┐
+        │ Action Validator             │
+        │ Execution Tracker            │
+        │ Logger                       │
+        └─────────────────────────────┘
+
+                           │
+                           ▼
+
+                    Hybrid Memory Layer
+
+        ┌─────────────────────────────┐
+        │ Short-Term Memory            │
+        │ Long-Term Memory             │
+        │ history.json                 │
+        │ tool_execution_history.json  │
+        └─────────────────────────────┘
 ```
 
 ---
@@ -87,240 +350,105 @@ Memory Layer
 # 📂 Project Structure
 
 ```
-
 Multi-AI-Agent-Coding-Assistant/
 
-│
 ├── agents/
 │   ├── coordinator.py
+│   ├── decision_engine.py
 │   ├── coding_agent.py
 │   ├── debugging_agent.py
 │   ├── documentation_agent.py
 │   ├── planner.py
 │   └── project_analyzer_agent.py
-│
+
+├── assets/
+│   └── image.png
+
+├── config/
+
+├── memory/
+│   ├── history.json
+│   ├── memory.py
+│   ├── memory_manager.py
+│   └── storage.py
+
 ├── models/
 │   ├── llm.py
 │   └── model_manager.py
-│
+
 ├── prompts/
 │   ├── coding_prompt.py
 │   ├── debugging_prompt.py
 │   ├── documentation_prompt.py
 │   ├── planner_prompt.py
 │   └── project_analyzer_prompt.py
-│
-├── memory/
-│   ├── memory.py
-│   ├── memory_manager.py
-│   ├── storage.py
-│   └── history.json
-│
+
+├── tests/
+│   ├── test_agents.py
+│   ├── test_tools.py
+│   └── test_workflows.py
+
 ├── tools/
-│   ├── file_tool.py
+│   ├── action_validator.py
+│   ├── security_guard.py
+│   ├── base_tool.py
 │   ├── code_executor.py
-│   ├── project_analyzer.py
+│   ├── execution_tracker.py
+│   ├── file_tool.py
+│   ├── github_tool.py
+│   ├── llm_guard.py
+│   ├── logger.py
+│   ├── multi_file_parser.py
+│   ├── patch_parser.py
 │   ├── patch_tool.py
-│   └── multi_file_parser.py
-│
+│   ├── project_analyzer.py
+│   └── tool_manager.py
+
+├── .env
+├── .gitignore
 ├── app.py
 ├── main.py
-├── requirements.txt
+├── pytest.ini
 ├── README.md
-└── .env
-
-````
-
----
-
-# ⚙️ Installation
-
-## 1. Clone the repository
-
-```bash
-git clone <repository-url>
-````
-
-## 2. Create a virtual environment
-
-```bash
-python -m venv venv
-```
-
-Activate environment:
-
-Windows:
-
-```bash
-venv\Scripts\activate
-```
-
-Linux/Mac:
-
-```bash
-source venv/bin/activate
+└── requirements.txt
 ```
 
 ---
 
-## 3. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## 4. Configure Environment Variables
-
-Create a `.env` file:
-
-```
-GROQ_API_KEY=your_api_key_here
-```
-
----
-
-## 5. Run the Application
-
-```bash
-streamlit run app.py
-```
-
-The application will start at:
-
-```
-http://localhost:8501
-```
-
----
-
-# 💬 Example Prompts
-
-### Code Generation
-
-```
-Create a Python calculator program.
-```
-
-### Debugging
-
-```
-Debug this Python error:
-IndexError: list index out of range
-```
-
-### Documentation
-
-```
-Explain Python decorators.
-```
-
-### Project Analysis
-
-```
-Analyze my project structure.
-```
-
-### File Management
-
-```
-Create file hello.py.
-```
-
-### Code Execution
-
-```
-Create a Python Fibonacci program and execute it.
-```
-
----
-
-# 🔗 LangChain Integration
-
-The project uses LangChain components for:
-
-* LLM communication using ChatGroq
-* ChatPromptTemplate based prompt management
-* Structured AI agent workflows
-* Modular prompt architecture
-* Future support for advanced LangChain chains and memory
-
----
-
-# 🧠 Memory System
-
-The project implements a hybrid memory approach:
-
-## Short-Term Memory
-
-Used during conversations for maintaining context.
-
-## Long-Term Memory
-
-Stored using:
-
-```
-memory/history.json
-```
-
-This allows previous interactions to be saved and reused.
-
----
-
-# 🛠️ Technologies Used
+# 🛠 Technologies Used
 
 * Python
 * Streamlit
 * LangChain
-* LangChain Core
-* LangChain ChatGroq
-* Groq LLM API
-* Large Language Models
+* ChatGroq LLM
+* Prompt Engineering
+* Object-Oriented Programming
 * JSON-based Memory Storage
+* File Processing
+* Subprocess Execution
+* AI Agent Architecture
 
 ---
 
-# 🚀 Development Progress
+# 🚀 Future Enhancements
 
-## Milestone 1 Completed ✅
+Possible future improvements:
 
-Implemented:
-
-* LangChain environment setup
-* ChatGroq LLM integration
-* Modular AI agent architecture
-* Coordinator-based decision workflow
-* LangChain ChatPromptTemplates
-* Specialized AI agents
-* Streamlit testing interface
-* Code execution workflow
-* File management tools
-* JSON conversation memory
+* Docker-based secure code execution.
+* More programming language support.
+* Advanced multi-agent collaboration.
+* GitHub automation.
+* Cloud deployment.
+* Enterprise authentication.
+* Improved AI planning capabilities.
 
 ---
 
-# 🔮 Future Enhancements
+# ✅ Conclusion
 
-* LangChain Conversation Memory integration
-* Advanced LangChain Chains
-* Support for additional programming languages
-* Conversation export
-* Authentication system
-* Voice input support
-* GitHub repository analysis
-* Docker deployment
-* Cloud deployment
+The **Multi-AI-Agent Coding Assistant with Intelligent Decision Engine** demonstrates how multiple specialized AI agents can collaborate through an intelligent coordination framework.
 
----
+The Decision Engine provides intelligent task routing, the Coordinator Agent manages workflow execution, AI agents perform specialized tasks, and enterprise tools enable real coding operations.
 
-# 👨‍💻 Author
-
-Developed as a **Multi-AI-Agent Coding Assistant project** using:
-
-* Streamlit
-* LangChain
-* ChatGroq
-* Python
-* Modular AI Agent Architecture
+With security validation, memory management, and monitoring capabilities, the system provides a scalable foundation for next-generation AI-powered software development assistants.
 
