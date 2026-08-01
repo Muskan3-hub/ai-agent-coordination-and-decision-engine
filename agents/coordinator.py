@@ -6,6 +6,8 @@ from agents.planner import Planner
 from tools.logger import logger
 
 from agents.project_analyzer_agent import ProjectAnalyzer
+from workflow.workflow_manager import WorkflowManager
+from agents.reviewer_agent import ReviewerAgent
 from tools.code_executor import CodeExecutor
 from tools.file_tool import FileTool
 from tools.multi_file_parser import MultiFileParser
@@ -23,7 +25,7 @@ import re
 
 class CoordinatorAgent:
 
-    def __init__(self, model, guard, memory):
+    def __init__(self, model, guard, memory,short_memory):
 
         # -------------------------
         # LLM Agents
@@ -33,6 +35,14 @@ class CoordinatorAgent:
         self.docs = DocumentationAgent(model, guard)
         self.planner=Planner(model, guard)
         self.project_analyzer = ProjectAnalyzer(model,guard)
+        self.reviewer = ReviewerAgent(model, guard)
+
+        self.workflow_manager = WorkflowManager(
+            self.planner,
+            self.coding,
+            self.reviewer,
+            self.docs
+        )
         self.decision_engine = DecisionEngine()
 
 
@@ -42,6 +52,7 @@ class CoordinatorAgent:
         self.model = model
         self.guard = guard
         self.memory= memory
+        self.short_memory = short_memory
 
         
         
@@ -78,22 +89,100 @@ Python Program:
         print(response)
 
         return response
+    def clean_code_output(self, text):
+
+        text = text.strip()
+
+        text = text.replace("```python", "")
+        text = text.replace("```", "")
+
+        if text.startswith("python"):
+            text = text[6:].strip()
+
+        text = text.replace("def init(", "def __init__(")
+        text = text.replace(
+            "if name == \"main\":",
+            "if __name__ == \"__main__\":"
+        )
+
+        return text.strip()
 
     def handle_task(self, task):
 
+        context = self.short_memory.get_context()
         task_lower = task.lower()
         start_time=time.time()
         logger.info(f"User Request:{task}")
-        recent_context= self.memory.get_recent_context()
+        recent_context = context
 
         decision = self.decision_engine.decide(task)
+        is_workflow = any(
+        keyword in task_lower
+        for keyword in [
+            "build",
+            "create an application",
+            "develop",
+            "design a system",
+            "create a system",
+            "build a system",
+            "make an application",
+            "develop an application"
+            ]
+        )
+        print("WORKFLOW CHECK:", is_workflow)
+
+        print("Task:", task)
+        print("Decision:", decision)
 
         # Reset API guard
         self.guard.reset()
 
         response = ""
         agent_name = "Unknown"
-        # =====================================================
+        if is_workflow:
+
+            print("ENTERING COLLABORATIVE WORKFLOW")
+            self.guard.reset()
+
+            workflow_result = self.workflow_manager.execute(
+                task,
+                recent_context
+            )
+            clean_code = self.clean_code_output(
+                workflow_result["coding"]
+            )
+
+            final_response = f"""
+            Collaborative Workflow Completed
+
+            ## Planning Result
+
+            {workflow_result["planner"]}
+
+
+            ## Coding Result
+
+            {workflow_result["coding"]}
+
+
+            ## Review Result
+
+            {workflow_result["review"]}
+
+
+            ## Documentation Result
+
+            {workflow_result["documentation"]}
+            """
+            self.short_memory.add("user", task)
+            self.short_memory.add("assistant", final_response)
+            return {
+                "response": final_response,
+                "agent": "Collaborative Workflow",
+                "workflow": workflow_result,
+                "code": clean_code
+            }
+                    # =====================================================
         # 0. GITHUB TOOL
         # =====================================================
 
@@ -585,7 +674,9 @@ User Request:
                 logger.info("Request completed successfully.")
                 execution_time=time.time() - start_time
                 logger.info(f"Execution Time:{execution_time:2f}seconds")
-        
+        # Store current conversation in short-term memory
+        self.short_memory.add("user", task)
+        self.short_memory.add("assistant", response)
         return {
             "response":response,
             "agent":agent_name

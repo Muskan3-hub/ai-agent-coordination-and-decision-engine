@@ -55,9 +55,9 @@ class DecisionEngine:
         ]
 
         self.file_keywords = [
-            "read",
-            "write",
-            "delete",
+            "read file",
+            "write file",
+            "delete file",
             "create file",
             "open file",
             "save file"

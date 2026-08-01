@@ -4,6 +4,7 @@ import time
 from models.llm import LLM
 from tools.llm_guard import LLMGuard
 from memory.memory import Memory
+from memory.short_term_memory import ShortTermMemory
 from agents.coordinator import CoordinatorAgent
 
 
@@ -67,11 +68,13 @@ if "messages" not in st.session_state:
 model = LLM()
 guard = LLMGuard()
 memory = Memory()
+short_memory = ShortTermMemory()
 
 coordinator = CoordinatorAgent(
     model,
     guard,
-    memory
+    memory,
+    short_memory
 )
 
 # --------------------------------------------------
@@ -144,38 +147,43 @@ if prompt:
 
             response = result["response"]
             agent = result["agent"]
+
+            st.info(f"🧠 Agent Used: {agent}")
+
+
             # Save conversation to long-term memory
+            if "workflow" in result:
+                memory_response = "Collaborative workflow completed."
+            else:
+                memory_response = response
+
             memory.add_conversation(
                 user_message=prompt,
-                assistant_message=response
+                assistant_message=memory_response
             )
-            st.info(f"🧠 Agent Used: {agent}")
-            
+                        
 
             end = time.time()
 
             execution_time = end - start
 
-            display_response = response
+            if "workflow" in result:
 
-            # Remove FILE header before displaying code
-            if display_response.startswith("FILE:"):
-                display_response = "\n".join(
-                    display_response.splitlines()[1:]
-                ).strip()
+                st.subheader("📝 Planning Result")
+                st.write(result["workflow"]["planner"])
 
-            display_response = response
+                st.subheader("💻 Coding Result")
+                st.code(
+                    result["code"],
+                    language="python"
+                )
 
-            # Remove FILE header before displaying code
-            if display_response.startswith("FILE:"):
-                display_response = "\n".join(
-                    display_response.splitlines()[1:]
-                ).strip()
+                st.subheader("🔍 Review Result")
+                st.write(result["workflow"]["review"])
 
-            if display_response.strip().startswith(
-                ("def ", "class ", "import ", "from ")
-            ):
-                st.code(display_response, language="python")
+                st.subheader("📄 Documentation Result")
+                st.write(result["workflow"]["documentation"])
+
             else:
                 st.markdown(response)
             
@@ -195,7 +203,10 @@ if prompt:
 
     message_type = "text"
 
-    if display_response.strip().startswith(
+    if "workflow" in result:
+        message_type = "text"
+
+    elif response.strip().startswith(
         (
             "def ",
             "class ",
