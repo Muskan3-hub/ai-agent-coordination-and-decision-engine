@@ -1,13 +1,17 @@
-from memory.memory_manager import MemoryManager
 from agents.coordinator import CoordinatorAgent
-from models.model_manager import ModelManager
+from memory.memory import Memory
+from memory.short_term_memory import ShortTermMemory
+from models.llm import LLM
 from tools.llm_guard import LLMGuard
 
-model = ModelManager()
+model = LLM()
 guard = LLMGuard()
-memory=MemoryManager()
+memory = Memory()
+short_memory = ShortTermMemory()
 
-agent = CoordinatorAgent(model, guard,memory)
+agent = CoordinatorAgent(model, guard, memory, short_memory)
+
+print("Multi-AI-Agent Coding Assistant (type 'exit' to quit)")
 
 while True:
     task = input("\nEnter your request: ")
@@ -15,8 +19,8 @@ while True:
     if task.lower() in ["exit", "quit"]:
         break
 
-    response = agent.handle_task(task)
-    memory.add(task,response)
+    result = agent.handle_task(task)
+    memory.add_conversation(task, result["response"])
 
     print("\nAI Response:\n")
-    print(response)
+    print(result["response"])

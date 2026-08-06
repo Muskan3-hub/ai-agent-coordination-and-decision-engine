@@ -6,3 +6,18 @@ __pycache__/
 .streamlit/
 generated_*.py
 *.log
+enterprise.db
+logs/
+
+# End-user uploaded files (keep private)
+user_data/
+
+# Desktop-app state folders (never commit)
+.freebuff*/
+
+# Test cache
+.pytest_cache/
+
+# Runtime conversation data (regenerated on every run)
+memory/*.json
+shared_memory.json

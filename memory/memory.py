@@ -22,6 +22,14 @@ class Memory:
         return context
     
     def add_conversation(self, user_message, assistant_message):
+        # Avoid duplicate consecutive entries (Issue 11)
+        if (
+            self.history
+            and self.history[-1].get("user") == user_message
+            and self.history[-1].get("assistant") == assistant_message
+        ):
+            return
+
         self.history.append(
             {
                 "user": user_message,

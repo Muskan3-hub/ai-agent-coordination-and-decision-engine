@@ -1,4 +1,5 @@
 from tools.base_tool import BaseTool
+from tools.code_cleaner import clean_code
 import subprocess
 import tempfile
 import os
@@ -15,21 +16,8 @@ class CodeExecutor(BaseTool):
         if code is None:
             return "No code provided"
 
-        code = code.strip()
-
-        if code.startswith("```python"):
-            code = code.replace("```python", "", 1).strip()
-
-        elif code.startswith("```"):
-            code = code.replace("```", "", 1).strip()
-
-        if code.endswith("```"):
-            code = code[:-3].strip()
-
-        lines = code.splitlines()
-
-        if lines and lines[0].strip().lower() == "python":
-            code = "\n".join(lines[1:])
+        # Centralized cleaning (Issue 15)
+        code = clean_code(code)
 
         try:
             with tempfile.NamedTemporaryFile(

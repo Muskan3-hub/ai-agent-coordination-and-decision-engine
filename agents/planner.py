@@ -14,8 +14,6 @@ class Planner:
 
     def execute(self, user_input, context=""):
 
-        self.guard.reset()
-
         task = f"""
 Previous Conversation:
 {context}
@@ -23,6 +21,11 @@ Previous Conversation:
 User Request:
 {user_input}
 """
+
+        if not self.guard.can_call():
+            return "LLM limit reached in Planner"
+
+        self.guard.register_call()
 
         prompt = PLANNER_PROMPT.format_messages(input=task)
 

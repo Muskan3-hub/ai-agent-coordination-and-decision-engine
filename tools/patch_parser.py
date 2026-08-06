@@ -45,12 +45,6 @@ class PatchParser:
             old_code = old_code.strip() if old_code else ""
             new_code = new_code.strip() if new_code else ""
 
-            print("DEBUG PATCH DATA:")
-            print("FILE:", file_name)
-            print("OLD:", old_code)
-            print("NEW:", new_code)
-
-
             patches.append({
                 "file": file_name,
                 "old": old_code,

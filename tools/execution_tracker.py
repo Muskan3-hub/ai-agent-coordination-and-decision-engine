@@ -64,4 +64,22 @@ class ExecutionTracker:
 
             json.dump(history, f, indent=4)
 
+        # -------------------------
+        # Mirror into the DB so the Analytics "Tool Usage" chart
+        # and "Most used tool" highlight have data to render.
+        # (Lazy import keeps this module decoupled from the DB.)
+        # -------------------------
+        try:
+            from database import get_db
+            db = get_db()
+            db.log_tool(
+                tool_name,
+                action=None,
+                status=status,
+                detail=result_summary,
+            )
+        except Exception:
+            # Logging must never break the tool call itself.
+            pass
+
         return record

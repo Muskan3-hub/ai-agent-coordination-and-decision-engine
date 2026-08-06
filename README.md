@@ -1,284 +1,83 @@
-# 🤖 Multi-AI-Agent Coding Assistant with Intelligent Decision Engine
+# 🤖 Multi-AI-Agent Coding Assistant
 
-## 📌 Project Overview
+> **One workspace to chat, code, debug, document, plan and analyze** — every request is routed automatically to the right specialized AI agent by an intelligent Decision Engine.
 
-The **Multi-AI-Agent Coding Assistant with Intelligent Decision Engine** is an intelligent software development platform designed to assist developers in coding, debugging, documentation, planning, and project analysis tasks.
-
-The system is built using **Python, Streamlit, LangChain, and ChatGroq** and follows a modular **Multi-Agent AI Architecture** where multiple specialized AI agents collaborate to solve different software engineering problems.
-
-Unlike traditional AI assistants that depend on a single AI model for all tasks, this project separates:
-
-* 🧠 Decision Making
-* 🤝 Workflow Coordination
-* 🤖 Task Execution
-* 🛠 Tool Interaction
-* 🔐 Security Validation
-
-into independent components.
-
-The system consists of:
-
-* 🧠 Intelligent Decision Engine
-* 🤝 Coordinator Agent
-* 🤖 Specialized AI Agents
-* 🛠 Enterprise Tool Framework
-* 🔐 Security Guard Layer
-* 💾 Hybrid Memory System
-* 📊 Validation & Execution Monitoring System
-
-The **Decision Engine** analyzes user requests, understands the intent, selects the required AI agent, and determines whether external tools are required.
-
-The **Coordinator Agent** manages the complete workflow by assigning tasks to specialized agents, communicating between components, invoking tools, maintaining memory, validating actions, and generating the final response.
-
-The architecture is designed to be scalable, maintainable, and extendable with new AI agents and enterprise tools.
+![System Architecture](assets/architecture.png)
 
 ---
 
-# 🎯 Objectives
+## 📌 Overview
 
-The main objectives of this project are:
+The **Multi-AI-Agent Coding Assistant** is a full-stack AI software-engineering platform built with **Python + Streamlit**. Instead of a single chat model doing everything, the system separates **decision making, workflow orchestration, task execution, tool interaction, security validation and memory** into independent, swappable components.
 
-* Build an intelligent Multi-AI Coding Assistant.
-* Implement an AI-based Decision Engine for task routing.
-* Develop multiple specialized AI agents.
-* Enable AI agents to perform real coding operations using tools.
-* Provide secure execution and validation of AI-generated actions.
-* Maintain conversation history and tool execution records.
-* Create a modular architecture that can be extended easily.
+The platform includes:
 
----
-
-# ✨ Features
-
-## 🤖 Multi-Agent Intelligence
-
-The system contains multiple specialized AI agents:
-
-### 💻 Coding Agent
-
-* Generates programming solutions.
-* Creates new code files.
-* Implements software features.
-
-### 🐞 Debugging Agent
-
-* Identifies programming errors.
-* Explains bugs.
-* Suggests corrections.
-
-### 📖 Documentation Agent
-
-* Generates documentation.
-* Explains code functionality.
-* Creates project descriptions.
-
-### 📝 Planner Agent
-
-* Breaks complex software tasks into smaller steps.
-* Creates development plans.
-
-### 📊 Project Analyzer Agent
-
-* Analyzes project structure.
-* Provides project insights.
+- 🧠 **Intelligent Decision Engine** — classifies every request (LLM-first, keyword fallback)
+- 🤝 **Coordinator Agent** — routes requests and orchestrates the pipeline
+- 🤖 **8 Specialized AI Agents** — chat, coding, debugging, docs, planning, project analysis, review, code analysis
+- 🔄 **Collaborative Workflow** — Planner → Coding → Reviewer → Code Analysis → Documentation
+- 🛠 **Enterprise Tool Framework** — file ops, code execution, patching, GitHub, code metrics
+- 🔌 **MCP Layer** — 7 model-context-protocol servers (GitHub, filesystem, search, database, Python exec, knowledge, git)
+- 🔐 **Security & Validation** — LLM guard, action validator, security guard, code cleaner
+- 💾 **Hybrid Memory** — short-term context/facts, long-term history, shared memory, RAG knowledge index
+- 🗄️ **Persistence & API** — SQLite database + dependency-free REST API
+- 👤 **Auth & RBAC** — Google / Email / Guest login with admin / developer / guest roles
 
 ---
 
-# 🧠 Intelligent Decision Engine
+## ✨ Features
 
-The Decision Engine is responsible for:
+### 🤖 Multi-Agent Intelligence
+| Agent | Responsibility |
+|---|---|
+| **Chat Assistant** | General conversation, Q&A, concept explanations |
+| **Coding Agent** | Generates code, creates files, implements features |
+| **Debugging Agent** | Root-causes errors, explains bugs, suggests fixes |
+| **Documentation Agent** | Writes docs, explains code, describes projects |
+| **Planner Agent** | Breaks tasks into plans, designs architectures |
+| **Project Analyzer** | Analyzes project structure, gives insights |
+| **Reviewer Agent** | Critiques code for bugs and quality issues |
+| **Code Analysis Agent** | Analyzes/reviews/quality-checks existing code |
 
-* Understanding user intent.
-* Classifying the requested task.
-* Selecting the appropriate AI agent.
-* Selecting required tools.
-* Creating an execution plan.
-
-Example:
+### 🔄 Collaborative Workflow
+Clicking **"Build an app"** runs the full 5-stage pipeline — each agent reads the previous stage's output from Shared Memory:
 
 ```
-User:
-"Fix this Python error"
-
-Decision Engine:
-Task Type → Debugging
-
-Selected Agent:
-Debugging Agent
+Planner Agent → Coding Agent → Reviewer Agent → Code Analysis Agent → Documentation Agent
 ```
 
----
+Results render in 5 tabs: 📋 Plan / 💻 Code / 🔍 Review / 🧪 Analysis / 📄 Docs.
 
-# 🤝 Coordinator Agent
+### 🧠 Memory & Routing Intelligence
+- **Memory Store / Recall** — tell the assistant *"My name is Muskan"* and it remembers; ask *"What is my name?"* and it recalls. The UI shows a **routing-analysis pill** explaining how each request was classified.
+- Requests route correctly even for tricky phrasing like *"Who is my favourite person?"* (recall, not store).
 
-The Coordinator Agent acts as the workflow management layer.
+### 🔑 GitHub Token via Chat
+Type `set my github token ghp_xxx` in the chat — the token is saved to `.env`, the process env, and the live MCP server instantly (no restart, no LLM call). GitHub stays hidden in the UI until you actually use a repository feature.
 
-Responsibilities:
-
-* Receives decisions from the Decision Engine.
-* Communicates with AI agents.
-* Manages agent execution.
-* Invokes tools through Tool Manager.
-* Collects outputs.
-* Returns final responses.
-
----
-
-# 🛠 Enterprise Tool Integration
-
-The system provides an enterprise-level tool framework.
-
-## 📂 File Tool
-
-Capabilities:
-
-* Create files
-* Read files
-* Update files
-* Delete files
+### 🎨 Consumer-Grade UI (theme.py + user_files.py)
+- Split-panel **auth screen** with Google / Email / Guest login
+- **Dark purple design system** — rounded cards, soft shadows, smooth animations (dark-only, English-only)
+- Sidebar with violet active states: **🏠 Workspace · 📂 My Files · 📊 Analytics · 📜 Chat History · ⚙️ Settings · 👤 User Profile · 🚪 Logout**
+- **Workspace** — 9 quick actions (Build Application, Chat Assistant, Write Code, Debug, Explain, Review, Code Analysis, Analyze Project, Documentation) that **ask what you need first** instead of firing canned prompts; drag & drop uploads; rich chat with agent/model/time meta, Copy, Download, Regenerate and Stop
+- **My Files** — private per-user upload library (never internal project folders): preview, download, rename, delete, search, filter
+- **Analytics** — 5 KPI cards + 4 usage charts, every number derived from real database records
+- **Chat History** — search across conversations and messages, open or export any chat
+- **Legal pages** — Terms, Privacy, Help Center, What's new
+- API keys and GitHub tokens are **never shown in the UI** — they stay internal
 
 ---
 
-## ▶️ Code Executor
-
-Capabilities:
-
-* Execute Python programs.
-* Capture output.
-* Handle execution errors.
-
----
-
-## 🔧 Patch Tool
-
-Capabilities:
-
-* Modify existing files.
-* Apply targeted code changes.
-* Prevent unnecessary rewriting.
-
----
-
-## 📁 Multi File Parser
-
-Capabilities:
-
-* Handle multiple file operations.
-* Parse structured code changes.
-
----
-
-## 🔍 Project Analyzer Tool
-
-Capabilities:
-
-* Analyze project folders.
-* Identify files and structure.
-* Generate project summaries.
-
----
-
-## 🌐 GitHub Tool
-
-Capabilities:
-
-* Analyze GitHub repositories.
-* Extract repository information.
-
----
-
-# 🔐 Security Guard Layer
-
-The Security Guard provides protection while executing AI-generated actions.
-
-Responsibilities:
-
-* Validate AI-generated actions.
-* Prevent unsafe operations.
-* Check tool execution requests.
-* Control access to sensitive operations.
-* Improve reliability of automated workflows.
-
-The Security Guard works with the Tool Manager before executing external actions.
-
-Workflow:
-
-```
-AI Agent Request
-
-        ↓
-
-Security Guard Validation
-
-        ↓
-
-Tool Manager
-
-        ↓
-
-Tool Execution
-```
-
----
-
-# 📊 Validation & Monitoring System
-
-The system includes monitoring components:
-
-## Action Validator
-
-* Checks whether requested actions are valid.
-* Prevents incorrect execution.
-
-## Execution Tracker
-
-* Tracks tool execution details.
-* Records execution status.
-
-## Logger
-
-* Stores system events.
-* Helps debugging and monitoring.
-
----
-
-# 💾 Hybrid Memory System
-
-The project implements memory management for maintaining context.
-
-Components:
-
-## Short-Term Memory
-
-Stores:
-
-* Current conversation context.
-* Active task information.
-
-## Long-Term Memory
-
-Stores:
-
-* Previous interactions.
-* Tool execution history.
-
-Files:
-
-```
-history.json
-
-tool_execution_history.json
-```
-
----
-
-# 🏗️ System Architecture
+## 🏗️ System Architecture
 
 ```
                          User
                            │
                            ▼
-                Streamlit Chat Interface
+                Streamlit Chat Interface (app.py + theme.py)
+                           │
+                           ▼
+              Auth: Google / Email / Guest · RBAC · Sessions
                            │
                            ▼
                   Intelligent Decision Engine
@@ -289,166 +88,159 @@ tool_execution_history.json
               (Workflow Orchestration Layer)
                            │
           ┌────────────────┼────────────────┐
-          │                │                │
-          ▼                ▼                ▼
-
- Specialized AI Agents       Enterprise Tools
-
-          │                      │
-          │                      ▼
-          │              Security Guard
-          │                      │
-          │                      ▼
-          │              Tool Manager
-          │
-          ▼
-
- ┌───────────────────────────────────────┐
- │ Coding Agent                          │
- │ Debugging Agent                       │
- │ Documentation Agent                   │
- │ Planner Agent                         │
- │ Project Analyzer Agent                │
- └───────────────────────────────────────┘
-
+          │                                │
+          ▼                                ▼
+ Specialized AI Agents            Enterprise Tool Framework
+ (8 agents)                       (File, Executor, Patch, GitHub, …)
+ + Workflow Manager               + MCP Layer (7 servers)
+          │                                │
+          └────────────────┬───────────────┘
+                           ▼
+              Security & Validation
+            (LLM Guard · Action Validator · Security Guard)
                            │
                            ▼
-
-                  LangChain Prompt System
-
+                    Prompt System
                            │
                            ▼
-
-                     ChatGroq LLM
-
+              Multi-Provider LLM (Groq/OpenAI/Gemini/Anthropic/Ollama)
                            │
                            ▼
-
-              Validation & Monitoring Layer
-
-        ┌─────────────────────────────┐
-        │ Action Validator             │
-        │ Execution Tracker            │
-        │ Logger                       │
-        └─────────────────────────────┘
-
-                           │
-                           ▼
-
                     Hybrid Memory Layer
-
-        ┌─────────────────────────────┐
-        │ Short-Term Memory            │
-        │ Long-Term Memory             │
-        │ history.json                 │
-        │ tool_execution_history.json  │
-        └─────────────────────────────┘
+         (Short-Term · Long-Term · Shared · Tool History · RAG)
+                           │
+                           ▼
+          Persistence & API (SQLite · REST API · Logger · Analytics)
 ```
 
 ---
 
-# 📂 Project Structure
+## 🧩 Component Breakdown
 
+### 🧠 Decision Engine (`agents/decision_engine.py`)
+- **LLM-first classification** with a category prompt, **keyword fallback** when the LLM is unavailable.
+- Handles 14 categories: `github, project, debug, documentation, planner, execution, patch, file, coding, memory_store, memory_recall, workflow, chat, code_analysis`.
+- Memory fast-path: unambiguous personal statements and recall questions are detected before any LLM call.
+
+### 🤝 Coordinator Agent (`agents/coordinator.py`)
+- Receives the decision, routes to the right agent/tool, stores turns in short-term memory.
+- Handlers: memory store/recall, chat, workflow, GitHub (via MCP), project analysis, code analysis, debugging, documentation, planner, patch, file, coding (+ optional execution).
+- Every route logs to the execution tracker and the database.
+
+### 🔌 MCP Layer (`mcp/`)
+| Server | Capabilities |
+|---|---|
+| **GitHub** | repo info, branches, commits, tree, file browse, stats, issues, PRs, releases, contributors, rate limit |
+| **Filesystem** | safe file read/write (path-escape protected) |
+| **Search** | content search |
+| **Database** | read-only queries (writes blocked) |
+| **Python Exec** | sandboxed execution with error capture |
+| **Knowledge** | RAG-backed knowledge retrieval |
+| **Git** | local git operations |
+
+All GitHub operations flow through `MCPManager.call("github", action, params)`.
+
+### 🛠 Tools (`tools/`)
+File Tool · Code Executor · Patch Tool · Project Analyzer · GitHub Tool · Multi-File Parser · Patch Parser · Action Validator · Execution Tracker · Code Metrics · Report Exporter · Security Guard · LLM Guard · Code Cleaner · Logger · Tool Manager
+
+### 💾 Memory (`memory/`)
+`ShortTermMemory` (context + facts) · `Memory` (long-term `history.json`) · `SharedMemory` (workflow stage handoff) · `ExecutionTracker` (`tool_execution_history.json`)
+
+### 🗄️ Database (`database/db.py`)
+SQLite (zero-config, PostgreSQL-ready) tables: users, sessions, conversations, messages, memory_facts, workflows, executions, **tool_logs** (powers the Analytics Tool Usage chart), agent_logs, analytics, github_activity, projects, settings.
+
+### 🌐 REST API (`api/server.py`)
+Dependency-free JSON API on stdlib `http.server`:
 ```
-Multi-AI-Agent-Coding-Assistant/
-
-├── agents/
-│   ├── coordinator.py
-│   ├── decision_engine.py
-│   ├── coding_agent.py
-│   ├── debugging_agent.py
-│   ├── documentation_agent.py
-│   ├── planner.py
-│   └── project_analyzer_agent.py
-
-├── assets/
-│   └── image.png
-
-├── config/
-
-├── memory/
-│   ├── history.json
-│   ├── memory.py
-│   ├── memory_manager.py
-│   └── storage.py
-
-├── models/
-│   ├── llm.py
-│   └── model_manager.py
-
-├── prompts/
-│   ├── coding_prompt.py
-│   ├── debugging_prompt.py
-│   ├── documentation_prompt.py
-│   ├── planner_prompt.py
-│   └── project_analyzer_prompt.py
-
-├── tests/
-│   ├── test_agents.py
-│   ├── test_tools.py
-│   └── test_workflows.py
-
-├── tools/
-│   ├── action_validator.py
-│   ├── security_guard.py
-│   ├── base_tool.py
-│   ├── code_executor.py
-│   ├── execution_tracker.py
-│   ├── file_tool.py
-│   ├── github_tool.py
-│   ├── llm_guard.py
-│   ├── logger.py
-│   ├── multi_file_parser.py
-│   ├── patch_parser.py
-│   ├── patch_tool.py
-│   ├── project_analyzer.py
-│   └── tool_manager.py
-
-├── .env
-├── .gitignore
-├── app.py
-├── main.py
-├── pytest.ini
-├── README.md
-└── requirements.txt
+POST /api/login, /api/chat, /api/code, /api/debug, /api/analyze,
+     /api/project, /api/github, /api/workflow
+GET  /api/dashboard, /api/health
 ```
 
----
-
-# 🛠 Technologies Used
-
-* Python
-* Streamlit
-* LangChain
-* ChatGroq LLM
-* Prompt Engineering
-* Object-Oriented Programming
-* JSON-based Memory Storage
-* File Processing
-* Subprocess Execution
-* AI Agent Architecture
+### 🧪 Testing
+- **93 automated tests** (`pytest tests/`): coordinator routing, decision engine, MCP, enterprise MCP, knowledge MCP, RAG, database, API, tools, code metrics, report exporter, settings, short-term memory, Google OAuth.
+- **12 real-LLM agent smoke tests** (`scripts/test_each_agent.py`).
 
 ---
 
-# 🚀 Future Enhancements
+## 🚀 Getting Started
 
-Possible future improvements:
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
 
-* Docker-based secure code execution.
-* More programming language support.
-* Advanced multi-agent collaboration.
-* GitHub automation.
-* Cloud deployment.
-* Enterprise authentication.
-* Improved AI planning capabilities.
+# 2. (Optional) Configure API keys in .env
+#    GROQ_API_KEY=...            (default provider)
+#    GITHUB_TOKEN=...            (optional, for GitHub tool)
+
+# 3. Launch the UI
+streamlit run app.py
+# → http://localhost:8501   (default admin: admin / admin123, auto-created)
+
+# 4. Run the CLI version
+python main.py
+
+# 5. Run tests
+pytest tests/ -q
+python scripts/test_each_agent.py
+```
+
+**Quick start in the UI:**
+- Type `My name is Muskan` → stored; `What is my name?` → recalled
+- Pick a **quick action** (e.g. ⚙️ Build Application) → it asks what you need, then runs
+- Type `set my github token ghp_xxx` → GitHub tool becomes authenticated
+- Click **⚙️ Build Application** → full 5-agent workflow, then **"Done — back to chat"**
+- Upload a `.py` file, then type `analyse it` / `review it` / `generate documentation` → routed to the correct agent
+- Ask `Show repo info for tensorflow/tensorflow` → GitHub via MCP
 
 ---
 
-# ✅ Conclusion
+## 📁 Project Structure
 
-The **Multi-AI-Agent Coding Assistant with Intelligent Decision Engine** demonstrates how multiple specialized AI agents can collaborate through an intelligent coordination framework.
+```
+├── agents/            # Decision engine, coordinator, 8 specialized agents
+├── api/               # Dependency-free REST API server
+├── assets/            # architecture.png (regenerate via scripts/generate_architecture.py)
+├── auth/              # AuthService: hashing, sessions, RBAC, Google/Email/Guest
+├── config/            # Settings service (DB-backed), provider models, env keys
+├── database/          # SQLite layer (enterprise.db)
+├── logsys/            # Enterprise logger
+├── mcp/               # MCP manager + 7 servers (base.py, manager.py, servers/)
+├── memory/            # Short-term, long-term, shared, storage, tool history
+├── models/            # LLM wrapper + model manager (multi-provider)
+├── prompts/           # Agent prompt templates
+├── rag/               # Knowledge indexer (RAG)
+├── scripts/           # generate_architecture.py, test_each_agent.py, fix_template_gaps.py, polish_agile_template.py
+├── templates/         # Agile / Defect Tracker / Unit Test Plan workbooks
+├── tests/             # 93 automated tests
+├── tools/             # Enterprise tool framework + security guards
+├── user_files.py      # Private per-user upload library (user_data/uploads/)
+├── workflow/          # WorkflowManager (5-stage collaborative pipeline)
+├── app.py             # Streamlit UI (Workspace, My Files, Analytics, History, Settings, Profile)
+├── theme.py           # Design system: CSS themes + HTML builders
+└── main.py            # CLI entry point
+```
 
-The Decision Engine provides intelligent task routing, the Coordinator Agent manages workflow execution, AI agents perform specialized tasks, and enterprise tools enable real coding operations.
+---
 
-With security validation, memory management, and monitoring capabilities, the system provides a scalable foundation for next-generation AI-powered software development assistants.
+## 🛠 Technologies
 
+Python · Streamlit · SQLite · Groq / OpenAI / Gemini / Anthropic / Ollama (LLM) · Requests · MCP (Model Context Protocol) · Pillow (diagrams) · pytest · stdlib http.server (API) · PBKDF2-SHA256 (auth)
+
+---
+
+## 📋 Project Templates
+
+The `templates/` folder ships filled agile workbooks tracking the whole project:
+
+- **Agile_Template_Filled.xlsx** — Product Backlog, Sprint Backlog (with day grids), Stand-up Meeting, Retrospection — Sprints 1–3
+- **Defect_Tracker_Filled.xlsx** — every bug found and fixed, by sprint
+- **Unit_Test_Plan_Filled.xlsx** — test cases TC-001…TC-032
+
+Sprint 3 rows reflect the current state of the product (consumer UI, quick actions, My Files, exact analytics, upload dedupe and attached-file routing). Sprint 1 & 2 document the original milestones. Rows are kept contiguous with `scripts/fix_template_gaps.py`, and Sprint Backlog / Retrospection polish is handled by `scripts/polish_agile_template.py` (both idempotent).
+
+---
+
+## ✅ Conclusion
+
+The **Multi-AI-Agent Coding Assistant** (v2.1.0) demonstrates a production-style multi-agent architecture: an intelligent Decision Engine routes requests to specialized agents, a Coordinator orchestrates them, a collaborative Workflow chains five agents together, enterprise tools + MCP servers enable real operations, a hybrid memory + database layer persists everything, and a consumer-grade Streamlit UI makes it all feel like a modern commercial AI product — validated by 93 automated tests.
