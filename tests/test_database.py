@@ -63,7 +63,9 @@ def test_workflows_executions_projects():
 def test_sessions_auth_integration():
     db = database.init_db(":memory:")
     auth = AuthService(db)
-    auth.ensure_default_admin()
+    # Explicit password so the .env ADMIN_PASSWORD cannot change the
+    # default admin's credentials (tests must not depend on import order).
+    auth.ensure_default_admin(password="admin123")
     user, token = auth.login("admin", "admin123")
     assert user is not None
     session_user = auth.get_session_user(token)

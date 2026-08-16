@@ -1,14 +1,21 @@
-"""RAG knowledge system (Task 5).
+"""RAG knowledge system (Task 5, upgraded).
 
 Indexes a project's source files and answers repository questions via
 semantic retrieval - locating functions/classes, explaining
 architecture, finding dependencies and bugs by similarity search.
 
-Implementation is stdlib-only: files are chunked, tokenized, and scored
-with a TF-IDF + cosine-similarity model (no external embedding service
-required). An optional `sentence_transformers` model can be dropped in
-later without changing the public API.
-"""
-from rag.indexer import KnowledgeIndex, index_project
+Two retrieval models are exposed:
 
-__all__ = ["KnowledgeIndex", "index_project"]
+- ``KnowledgeIndex`` — TF-IDF + cosine (fast, stdlib-only).
+- ``VectorIndex`` — embedding-based semantic search with code-aware
+  chunking, source ranking and conversation-aware retrieval.
+- ``RetrievalChain`` — LangChain pipeline (prompt template + LLM) on
+  top of the vector index.
+
+Embeddings come from ``rag.embeddings``: OpenAI when a key is present,
+otherwise a deterministic offline hashing embedder.
+"""
+from rag.indexer import KnowledgeIndex, VectorIndex, index_project
+from rag.retriever import RetrievalChain
+
+__all__ = ["KnowledgeIndex", "VectorIndex", "RetrievalChain", "index_project"]

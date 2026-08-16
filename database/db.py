@@ -11,6 +11,7 @@ Tables:
 """
 import json
 import os
+import secrets
 import sqlite3
 import threading
 import time
@@ -45,7 +46,18 @@ CREATE TABLE IF NOT EXISTS conversations (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id    INTEGER NOT NULL,
     title      TEXT NOT NULL DEFAULT 'New chat',
-    created_at TEXT NOT NULL
+    pinned     INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS shared_conversations (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    token           TEXT UNIQUE NOT NULL,
+    conversation_id INTEGER NOT NULL,
+    user_id         INTEGER NOT NULL,
+    created_at      TEXT NOT NULL,
+    enabled         INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -146,6 +158,14 @@ CREATE TABLE IF NOT EXISTS settings (
     value      TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+
+-- Query indexes (Milestone 4 - database performance).
+-- Hot paths: sidebar chat lists, message loads, monitoring queries.
+CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_executions_user_time ON executions(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_workflows_user ON workflows(user_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_event ON analytics(event);
 """
 
 
@@ -170,8 +190,11 @@ class Database:
     def _connect(self):
         if self.path == ":memory:":
             if self._memory_conn is None:
+                # All access is serialized under self._lock below, so the
+                # single shared in-memory connection may be used from any
+                # thread (Streamlit reruns, background workers, AppTest).
                 self._memory_conn = sqlite3.connect(
-                    ":memory:", timeout=30
+                    ":memory:", timeout=30, check_same_thread=False
                 )
                 self._memory_conn.row_factory = sqlite3.Row
             return self._memory_conn
@@ -184,6 +207,21 @@ class Database:
             conn = self._connect()
             try:
                 conn.executescript(SCHEMA)
+                # Migration for databases created before the pinned column
+                # existed (idempotent - only runs when the column is missing).
+                cols = {
+                    r["name"]
+                    for r in conn.execute("PRAGMA table_info(conversations)")
+                }
+                if "pinned" not in cols:
+                    conn.execute(
+                        "ALTER TABLE conversations ADD COLUMN pinned "
+                        "INTEGER NOT NULL DEFAULT 0"
+                    )
+                if "updated_at" not in cols:
+                    conn.execute(
+                        "ALTER TABLE conversations ADD COLUMN updated_at TEXT"
+                    )
                 conn.commit()
             finally:
                 if self.path != ":memory:":
@@ -269,19 +307,22 @@ class Database:
     # Conversations
     # -------------------------------------------------------------
     def create_conversation(self, user_id, title="New chat"):
+        now = self._now()
         cur = self._execute(
-            "INSERT INTO conversations (user_id, title, created_at) VALUES (?, ?, ?)",
-            (user_id, title, self._now()),
+            "INSERT INTO conversations (user_id, title, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?)",
+            (user_id, title, now, now),
         )
         return cur.lastrowid
 
     def list_conversations(self, user_id, limit=50):
+        """Most recently active first (empty chats sink to the bottom)."""
         return self._query(
             "SELECT c.*, "
             "(SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id) "
             "AS msg_count "
             "FROM conversations c WHERE c.user_id = ? "
-            "ORDER BY c.id DESC LIMIT ?",
+            "ORDER BY COALESCE(c.updated_at, c.created_at) DESC, c.id DESC LIMIT ?",
             (user_id, limit),
         )
 
@@ -296,7 +337,33 @@ class Database:
             (title, conversation_id),
         )
 
+    def set_conversation_pinned(self, conversation_id, pinned):
+        """Pin (1) or unpin (0) a conversation so it shows in the sidebar."""
+        self._execute(
+            "UPDATE conversations SET pinned = ? WHERE id = ?",
+            (1 if pinned else 0, conversation_id),
+        )
+
+    def list_pinned_conversations(self, user_id, limit=20):
+        """Conversations pinned to the sidebar (most recently active first)."""
+        return self._query(
+            "SELECT c.*, "
+            "(SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id) "
+            "AS msg_count "
+            "FROM conversations c WHERE c.user_id = ? AND c.pinned = 1 "
+            "ORDER BY COALESCE(c.updated_at, c.created_at) DESC, c.id DESC LIMIT ?",
+            (user_id, limit),
+        )
+
     def delete_conversation(self, conversation_id):
+        self._execute(
+            "DELETE FROM shared_conversations WHERE conversation_id = ?",
+            (conversation_id,),
+        )
+        self._execute(
+            "DELETE FROM message_attachments WHERE conversation_id = ?",
+            (conversation_id,),
+        )
         self._execute(
             "DELETE FROM messages WHERE conversation_id = ?", (conversation_id,)
         )
@@ -304,12 +371,85 @@ class Database:
             "DELETE FROM conversations WHERE id = ?", (conversation_id,)
         )
 
+    # -------------------------------------------------------------
+    # Conversation sharing (public read-only links)
+    # -------------------------------------------------------------
+    def create_share(self, conversation_id, user_id):
+        """Return the existing share token for a conversation, or create a
+        fresh one. Only the conversation's owner can share it."""
+        existing = self.get_share_for_conversation(conversation_id)
+        if existing and existing.get("enabled"):
+            return existing["token"]
+        token = secrets.token_urlsafe(16)
+        self._execute(
+            "INSERT INTO shared_conversations "
+            "(token, conversation_id, user_id, created_at, enabled) "
+            "VALUES (?, ?, ?, ?, 1)",
+            (token, conversation_id, user_id, self._now()),
+        )
+        return token
+
+    def get_share_for_conversation(self, conversation_id):
+        """Active share row for a conversation, or None."""
+        return self._query_one(
+            "SELECT * FROM shared_conversations "
+            "WHERE conversation_id = ? AND enabled = 1",
+            (conversation_id,),
+        )
+
+    def get_share_by_token(self, token):
+        """Active share row + owner info for a public link, or None."""
+        return self._query_one(
+            "SELECT s.*, u.username FROM shared_conversations s "
+            "JOIN users u ON u.id = s.user_id "
+            "WHERE s.token = ? AND s.enabled = 1",
+            (token,),
+        )
+
+    def revoke_share(self, conversation_id):
+        """Immediately invalidate any public link for a conversation."""
+        self._execute(
+            "UPDATE shared_conversations SET enabled = 0 "
+            "WHERE conversation_id = ?",
+            (conversation_id,),
+        )
+
+    def duplicate_conversation(self, user_id, conversation_id):
+        """Copy a conversation (title, messages and attachments) into a new
+        conversation for the same user. Returns the new conversation id."""
+        src = self.get_conversation(conversation_id)
+        if not src:
+            return None
+        new_id = self.create_conversation(
+            user_id, title=((src.get("title") or "New chat").strip() + " (copy)")
+        )
+        id_map = {}
+        for m in self.list_messages(conversation_id):
+            mid = self.add_message(new_id, m["role"], m["content"], m.get("agent"))
+            id_map[m["id"]] = mid
+        for m in self.list_messages(conversation_id):
+            rows = self._query(
+                "SELECT file_id, file_name FROM message_attachments "
+                "WHERE message_id = ? AND conversation_id = ?",
+                (m["id"], conversation_id),
+            )
+            for r in rows:
+                self.attach_message_file(
+                    id_map[m["id"]], new_id, r["file_id"], r["file_name"]
+                )
+        return new_id
+
     def add_message(self, conversation_id, role, content, agent=None):
-        """Insert a message and return its new id."""
+        """Insert a message, bump the conversation's activity time, and
+        return the new message id."""
         cur = self._execute(
             "INSERT INTO messages (conversation_id, role, content, agent, created_at) "
             "VALUES (?, ?, ?, ?, ?)",
             (conversation_id, role, content, agent, self._now()),
+        )
+        self._execute(
+            "UPDATE conversations SET updated_at = ? WHERE id = ?",
+            (self._now(), conversation_id),
         )
         return cur.lastrowid
 
@@ -345,15 +485,18 @@ class Database:
         return out
 
     def search_messages(self, user_id, query, limit=50):
-        """Full-text-ish search across a user's messages."""
+        """Full-text-ish search across a user's messages and the names of
+        files attached to those messages."""
         like = f"%{query}%"
         return self._query(
             "SELECT m.id AS message_id, m.conversation_id, m.role, m.content, "
             "m.created_at, c.title AS conversation_title "
             "FROM messages m JOIN conversations c ON c.id = m.conversation_id "
-            "WHERE c.user_id = ? AND m.content LIKE ? "
+            "WHERE c.user_id = ? AND (m.content LIKE ? OR EXISTS ("
+            "SELECT 1 FROM message_attachments a "
+            "WHERE a.conversation_id = c.id AND a.file_name LIKE ?)) "
             "ORDER BY m.id DESC LIMIT ?",
-            (user_id, like, limit),
+            (user_id, like, like, limit),
         )
 
     # -------------------------------------------------------------
@@ -403,6 +546,48 @@ class Database:
         return self._query_one(
             "SELECT COUNT(*) AS n FROM workflows WHERE user_id = ?", (user_id,)
         )["n"]
+
+    # -------------------------------------------------------------
+    # Workflow monitoring (Milestone 4 - API + monitoring)
+    # -------------------------------------------------------------
+    def get_workflow(self, workflow_id):
+        """A single workflow record (used for status queries)."""
+        return self._query_one(
+            "SELECT * FROM workflows WHERE id = ?", (workflow_id,)
+        )
+
+    def list_workflows(self, user_id=None, limit=50):
+        """Workflow history, most recent first."""
+        if user_id is None:
+            return self._query(
+                "SELECT * FROM workflows ORDER BY id DESC LIMIT ?", (limit,)
+            )
+        return self._query(
+            "SELECT * FROM workflows WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+            (user_id, limit),
+        )
+
+    def list_agent_logs(self, limit=50):
+        """Agent execution log entries, most recent first."""
+        return self._query(
+            "SELECT agent, action, status, detail, created_at "
+            "FROM agent_logs ORDER BY id DESC LIMIT ?",
+            (limit,),
+        )
+
+    def list_executions(self, user_id=None, limit=50):
+        """Agent execution records (latency + status), most recent first."""
+        if user_id is None:
+            return self._query(
+                "SELECT id, agent, status, duration_ms, created_at "
+                "FROM executions ORDER BY id DESC LIMIT ?",
+                (limit,),
+            )
+        return self._query(
+            "SELECT id, agent, status, duration_ms, created_at "
+            "FROM executions WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+            (user_id, limit),
+        )
 
     # -------------------------------------------------------------
     # Executions / analytics
@@ -651,6 +836,23 @@ class Database:
             return False
         self._execute("DELETE FROM messages WHERE id = ?", (rows[0]["id"],))
         return True
+
+    def update_message_content(self, message_id, content):
+        """Replace a single message's content (used by message editing)."""
+        self._execute(
+            "UPDATE messages SET content = ? WHERE id = ?", (content, message_id)
+        )
+
+    def delete_messages_after(self, conversation_id, message_id):
+        """Delete every message that comes AFTER ``message_id`` in a
+        conversation (used when regenerating from an edited message)."""
+        rows = self._query(
+            "SELECT id FROM messages WHERE conversation_id = ? AND id > ?",
+            (conversation_id, message_id),
+        )
+        for r in rows:
+            self._execute("DELETE FROM message_attachments WHERE message_id = ?", (r["id"],))
+            self._execute("DELETE FROM messages WHERE id = ?", (r["id"],))
 
     def export_conversations(self, user_id):
         """Return all conversations (with messages) for export as JSON."""

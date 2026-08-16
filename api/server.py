@@ -11,10 +11,20 @@ anywhere. Endpoints mirror the coordinator's routing:
     POST /api/project        {"token"}               -> project analysis
     POST /api/github         {"owner","repo","action","token"}
     POST /api/workflow       {"message","token"}     -> workflow
+    POST /api/workflows/execute {"message","type","token"} -> chain workflow
+    GET  /api/workflows/{id} {"token"}               -> workflow status
+    GET  /api/workflows      {"token"}               -> workflow history
+    GET  /api/agents/logs    {"token"}               -> agent execution logs
+    GET  /api/system/health                          -> health + metrics
     GET  /api/dashboard      {"token"}               -> stats
     GET  /api/health                                 -> liveness
 
 All endpoints return JSON: {"success": bool, ...}.
+
+Monitoring (Milestone 4): every request is timed and recorded in the
+internal ``monitoring.metrics`` module (never rendered in the UI);
+workflow execution, agent latency and tool/LLM usage are tracked there
+and exposed only via /api/system/health.
 """
 
 import json
@@ -30,6 +40,17 @@ from tools.llm_guard import LLMGuard
 from memory.memory import Memory
 from memory.short_term_memory import ShortTermMemory
 from agents.coordinator import CoordinatorAgent
+from monitoring.metrics import get_metrics
+
+# Workflow "type" -> directive that triggers the matching chain in the
+# Decision Engine / graph (Milestone 4 complex orchestration). With
+# type="auto" (or omitted) the message itself is routed naturally.
+WORKFLOW_DIRECTIVES = {
+    "build": "Build an application: {}",
+    "review_project": "Review this project: {}",
+    "debug_document": "Debug this code and document the fix: {}",
+    "explain_document": "Explain this code and generate documentation: {}",
+}
 
 
 class APIServer:
@@ -71,15 +92,101 @@ class APIServer:
                 return 401, {"success": False, "error": "Invalid credentials"}
             return 200, {"success": True, "token": token, "user": user["username"], "role": user["role"]}
 
-        # ---------------- Health / dashboard ----------------
+        # ---------------- Health / dashboard / monitoring ----------------
         if method == "GET" and path == "/api/health":
             return 200, {"success": True, "status": "ok", "time": time.time()}
+
+        if method == "GET" and path == "/api/system/health":
+            """Deep health: process metrics, memory, DB liveness, workflow
+            completion - internal monitoring, never shown in the UI."""
+            return 200, {
+                "success": True,
+                "status": "ok",
+                "time": time.time(),
+                "metrics": get_metrics().snapshot(),
+                "database": self._db_health(),
+                "workflows": {
+                    "total": self.db.count_workflows(),
+                    "by_status": self._workflow_status_counts(),
+                },
+            }
 
         if method == "GET" and path == "/api/dashboard":
             user = self.auth.get_session_user(body.get("token", ""))
             if not user:
                 return 401, {"success": False, "error": "Unauthorized"}
             return 200, {"success": True, "data": self.db.dashboard_stats()}
+
+        # ---------------- Workflow APIs (Milestone 4) ----------------
+        if method == "POST" and path == "/api/workflows/execute":
+            user = self.auth.get_session_user(body.get("token", ""))
+            if not user:
+                return 401, {"success": False, "error": "Unauthorized"}
+            message = body.get("message", "")
+            if not message:
+                return 400, {"success": False, "error": "message is required"}
+            wf_type = body.get("type", "auto")
+            task_message = self._workflow_directive(wf_type, message)
+            coordinator = self.get_coordinator()
+            start = time.time()
+            try:
+                result = coordinator.handle_task(task_message)
+                duration_ms = int((time.time() - start) * 1000)
+                agent = result.get("agent", "Workflow")
+                wf_id = None
+                if "workflow" in result:
+                    self.db.save_workflow(
+                        user["id"], message[:500], result["workflow"], "completed"
+                    )
+                    rows = self.db.list_workflows(user["id"], limit=1)
+                    wf_id = rows[0]["id"] if rows else None
+                self.db.log_execution(user["id"], agent, "success", duration_ms)
+                get_metrics().record_agent(agent, duration_ms)
+                get_metrics().record_workflow(ok=True)
+            except Exception as exc:
+                duration_ms = int((time.time() - start) * 1000)
+                self.db.log_execution(user["id"], "workflow", "error", duration_ms)
+                get_metrics().record_workflow(ok=False)
+                return 500, {"success": False, "error": str(exc)}
+            return 200, {
+                "success": True,
+                "workflow_id": wf_id,
+                "status": "completed",
+                "agent": agent,
+                "response": result.get("response"),
+            }
+
+        if method == "GET" and path == "/api/workflows":
+            user = self.auth.get_session_user(body.get("token", ""))
+            if not user:
+                return 401, {"success": False, "error": "Unauthorized"}
+            return 200, {
+                "success": True,
+                "workflows": self.db.list_workflows(user["id"], limit=50),
+            }
+
+        if method == "GET" and path.startswith("/api/workflows/"):
+            user = self.auth.get_session_user(body.get("token", ""))
+            if not user:
+                return 401, {"success": False, "error": "Unauthorized"}
+            try:
+                wf_id = int(path.rsplit("/", 1)[1])
+            except ValueError:
+                return 400, {"success": False, "error": "invalid workflow id"}
+            row = self.db.get_workflow(wf_id)
+            if not row:
+                return 404, {"success": False, "error": "workflow not found"}
+            return 200, {"success": True, "workflow": row}
+
+        if method == "GET" and path == "/api/agents/logs":
+            user = self.auth.get_session_user(body.get("token", ""))
+            if not user:
+                return 401, {"success": False, "error": "Unauthorized"}
+            return 200, {
+                "success": True,
+                "logs": self.db.list_agent_logs(50),
+                "executions": self.db.list_executions(user["id"], limit=50),
+            }
 
         # ---------------- Coordinator-driven endpoints ----------------
         if method == "POST" and path.startswith("/api/"):
@@ -136,6 +243,32 @@ class APIServer:
         return 404, {"success": False, "error": f"No route for {method} {path}"}
 
     # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _workflow_directive(wf_type, message):
+        """Map an explicit workflow type to a directive the Decision Engine
+        understands; unknown types fall back to natural routing (auto)."""
+        prefix = WORKFLOW_DIRECTIVES.get(wf_type)
+        return prefix.format(message) if prefix else message
+
+    def _workflow_status_counts(self):
+        """Count workflows per status for /api/system/health."""
+        counts = {}
+        for w in self.db.list_workflows(limit=100000):
+            status = w.get("status") or "unknown"
+            counts[status] = counts.get(status, 0) + 1
+        return counts
+
+    def _db_health(self):
+        """Cheap DB liveness probe for /api/system/health."""
+        try:
+            row = self.db._query_one("SELECT COUNT(*) AS n FROM executions")
+            return {"ok": True, "executions": row["n"] if row else 0}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+
+    # ------------------------------------------------------------------
     # Server lifecycle
     # ------------------------------------------------------------------
     def serve(self):
@@ -168,15 +301,31 @@ def _make_handler(server):
             self.wfile.write(data)
 
         def _dispatch(self, method):
-            parsed = urlparse(self.path)
-            length = int(self.headers.get("Content-Length", 0) or 0)
-            raw = self.rfile.read(length) if length else b""
+            # Internal monitoring: time every request (Milestone 4).
+            start = time.time()
+            ok = True
             try:
-                body = json.loads(raw.decode("utf-8")) if raw else {}
-            except json.JSONDecodeError:
-                body = {}
-            status, payload = server._handle_request(method, parsed.path, body)
-            self._respond(status, payload)
+                parsed = urlparse(self.path)
+                length = int(self.headers.get("Content-Length", 0) or 0)
+                raw = self.rfile.read(length) if length else b""
+                try:
+                    body = json.loads(raw.decode("utf-8")) if raw else {}
+                except json.JSONDecodeError:
+                    body = {}
+                status, payload = server._handle_request(method, parsed.path, body)
+                if status >= 500:
+                    ok = False
+                self._respond(status, payload)
+            except Exception as exc:
+                ok = False
+                try:
+                    self._respond(500, {"success": False, "error": str(exc)})
+                except Exception:
+                    pass
+            finally:
+                get_metrics().record_request(
+                    (time.time() - start) * 1000, ok=ok
+                )
 
         do_GET = lambda self: self._dispatch("GET")
         do_POST = lambda self: self._dispatch("POST")

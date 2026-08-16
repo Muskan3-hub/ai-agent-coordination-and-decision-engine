@@ -22,3 +22,5 @@ def test_provider_models_and_env_keys_exist():
     assert "anthropic" in PROVIDER_MODELS
     assert "ollama" in PROVIDER_MODELS
     assert ENV_KEYS["groq"] == "GROQ_API_KEY"
+
+

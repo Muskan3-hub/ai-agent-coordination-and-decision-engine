@@ -1,0 +1,49 @@
+# Render blueprint (Milestone 4 - cloud deployment)
+# https://dashboard.render.com/blueprints  ->  New Blueprint Instance
+services:
+  - type: web
+    name: ai-coding-assistant
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.address=0.0.0.0 --server.port=10000 --server.headless=true
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "true"
+      - key: DATABASE_URL
+        value: /var/data/enterprise.db
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+    disk:
+      name: sqlite-data
+      mountPath: /var/data
+      sizeGB: 1
+
+  - type: web
+    name: ai-coding-assistant-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/start_api.py
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "true"
+      - key: DATABASE_URL
+        value: /var/data/enterprise.db
+      - key: API_HOST
+        value: 0.0.0.0
+      - key: API_PORT
+        value: 8787
+      - key: GROQ_API_KEY
+        sync: false
+    disk:
+      name: sqlite-data-api
+      mountPath: /var/data
+      sizeGB: 1

@@ -40,17 +40,36 @@ The platform includes:
 | **Code Analysis Agent** | Analyzes/reviews/quality-checks existing code |
 
 ### 🔄 Collaborative Workflow
-Clicking **"Build an app"** runs the full 5-stage pipeline — each agent reads the previous stage's output from Shared Memory:
+Clicking **"Build an app"** runs a multi-stage graph — each agent reads the previous stage's output from shared state:
 
 ```
-Planner Agent → Coding Agent → Reviewer Agent → Code Analysis Agent → Documentation Agent
+Planner Agent → Coding Agent → Documentation Agent
 ```
 
-Results render in 5 tabs: 📋 Plan / 💻 Code / 🔍 Review / 🧪 Analysis / 📄 Docs.
+Compound coding-first requests ("write X, find bugs, review it, generate documentation") run the
+`code_review_docs` chain:
+
+```
+Coding Agent → Code Analysis Agent → Reviewer Agent → Documentation Agent
+```
+
+Other chains: `review_project` (Project Analyzer → Reviewer), `debug_document` (Debugger →
+Documentation), `explain_document` (Code Analysis → Documentation). All chains keep the same
+generated code consistent from start to finish.
 
 ### 🧠 Memory & Routing Intelligence
-- **Memory Store / Recall** — tell the assistant *"My name is Muskan"* and it remembers; ask *"What is my name?"* and it recalls. The UI shows a **routing-analysis pill** explaining how each request was classified.
+- **Memory Store / Recall** — tell the assistant *"My name is Muskan"* and it remembers; ask *"What is my name?"* and it recalls. Personal memory stays independent of conversation context — *"forget the previous coding discussion"* clears coding context without erasing remembered facts.
 - Requests route correctly even for tricky phrasing like *"Who is my favourite person?"* (recall, not store).
+
+### 📎 File / Project Workflows
+- **File upload** — a `.py`/`.txt`/`.md`/`.json`/`.csv` upload becomes conversation context: follow-ups (`analyse it`, `review it`, `convert it to Java`) act on the uploaded content, and uploaded context wins over stale conversation code.
+- **ZIP project upload** — the + menu keeps a single **Upload File** action; a `.zip` uploaded through it is extracted to a per-user project folder and analyzed as a real project (structure, review, plan, README generation from the actual files — never hallucinated).
+
+### 🤖 Model Configuration
+- **Default / high-volume model:** `openai/gpt-oss-20b` (Groq) — chat, coding, debugging, documentation, routing.
+- **Deep-analysis model:** `openai/gpt-oss-120b` (Groq) — planner, reviewer, code analysis, project analysis; also the automatic fallback when the primary model is rate-limited.
+- The **Model Selector lives in Settings** (not the sidebar). A manual selection is persisted in the database and survives reruns/reloads; "Auto" restores the per-task split above.
+- Multi-provider: Groq, OpenAI, Gemini, Anthropic and Ollama are all supported — set the matching API key in `.env` and pick the provider in Settings.
 
 ### 🔑 GitHub Token via Chat
 Type `set my github token ghp_xxx` in the chat — the token is saved to `.env`, the process env, and the live MCP server instantly (no restart, no LLM call). GitHub stays hidden in the UI until you actually use a repository feature.
@@ -59,7 +78,7 @@ Type `set my github token ghp_xxx` in the chat — the token is saved to `.env`,
 - Split-panel **auth screen** with Google / Email / Guest login
 - **Dark purple design system** — rounded cards, soft shadows, smooth animations (dark-only, English-only)
 - Sidebar with violet active states: **🏠 Workspace · 📂 My Files · 📊 Analytics · 📜 Chat History · ⚙️ Settings · 👤 User Profile · 🚪 Logout**
-- **Workspace** — 9 quick actions (Build Application, Chat Assistant, Write Code, Debug, Explain, Review, Code Analysis, Analyze Project, Documentation) that **ask what you need first** instead of firing canned prompts; drag & drop uploads; rich chat with agent/model/time meta, Copy, Download, Regenerate and Stop
+- **Workspace** — the + menu offers **Upload File** plus 7 quick actions (Build Application, Write Code, Debug, Documentation, Analyze Project, Code Analysis, Chat Assistant) that **ask what you need first** instead of firing canned prompts; drag & drop uploads; rich chat with the agent label and status, Copy, Download, Regenerate and Stop
 - **My Files** — private per-user upload library (never internal project folders): preview, download, rename, delete, search, filter
 - **Analytics** — 5 KPI cards + 4 usage charts, every number derived from real database records
 - **Chat History** — search across conversations and messages, open or export any chat
@@ -158,32 +177,49 @@ GET  /api/dashboard, /api/health
 ```
 
 ### 🧪 Testing
-- **93 automated tests** (`pytest tests/`): coordinator routing, decision engine, MCP, enterprise MCP, knowledge MCP, RAG, database, API, tools, code metrics, report exporter, settings, short-term memory, Google OAuth.
-- **12 real-LLM agent smoke tests** (`scripts/test_each_agent.py`).
+- **276 automated tests** (`pytest tests/`): coordinator routing, decision engine, LangGraph workflows, MCP, enterprise MCP, knowledge MCP, RAG (+ vector), database, API, tools, code metrics, report exporter, settings, short-term memory, model selection, memory upgrades, response directives, Google OAuth, the Streamlit UI, and follow-up/context routing.
+- Run the suite with the project's virtual environment (system Python lacks the `groq` dependency):
+  ```bash
+  venv\Scripts\python.exe -m pytest tests/ -q     # Windows
+  venv/bin/python -m pytest tests/ -q             # macOS / Linux
+  ```
 
 ---
 
 ## 🚀 Getting Started
 
+> **Environment requirement:** the application must run with its virtual-environment Python
+> (`venv\Scripts\python.exe` on Windows, `venv/bin/python` on macOS/Linux). Running with system
+> Python produces `No module named 'groq'` — the app reports this as a clear dependency/setup
+> error with an actionable message, never as a generic AI failure.
+
 ```bash
-# 1. Install dependencies
-pip install -r requirements.txt
+# 1. (First time) Create the virtual environment
+python -m venv venv
 
-# 2. (Optional) Configure API keys in .env
-#    GROQ_API_KEY=...            (default provider)
-#    GITHUB_TOKEN=...            (optional, for GitHub tool)
+# 2. Install dependencies (always via the venv python)
+venv\Scripts\python.exe -m pip install -r requirements.txt     # Windows
+venv/bin/python -m pip install -r requirements.txt             # macOS / Linux
 
-# 3. Launch the UI
-streamlit run app.py
+# 3. Configure API keys
+#    Copy .env.example to .env and fill in your keys (all placeholders):
+#      GROQ_API_KEY=...        (default provider)
+#      OPENAI_API_KEY / GEMINI_API_KEY / ANTHROPIC_API_KEY / OLLAMA_BASE_URL (optional)
+#      GITHUB_TOKEN=...        (optional, for GitHub tool)
+
+# 4. Launch the UI
+venv\Scripts\python.exe -m streamlit run app.py
 # → http://localhost:8501   (default admin: admin / admin123, auto-created)
 
-# 4. Run the CLI version
-python main.py
+# 5. Run the CLI version
+venv\Scripts\python.exe main.py
 
-# 5. Run tests
-pytest tests/ -q
-python scripts/test_each_agent.py
+# 6. Run tests
+venv\Scripts\python.exe -m pytest tests/ -q
 ```
+
+**Environment configuration (`.env`)** — see `.env.example` for the full template. Never commit
+`.env`; it is git-ignored and all examples ship with `<placeholder>` values only.
 
 **Quick start in the UI:**
 - Type `My name is Muskan` → stored; `What is my name?` → recalled
@@ -210,9 +246,9 @@ python scripts/test_each_agent.py
 ├── models/            # LLM wrapper + model manager (multi-provider)
 ├── prompts/           # Agent prompt templates
 ├── rag/               # Knowledge indexer (RAG)
-├── scripts/           # generate_architecture.py, test_each_agent.py, fix_template_gaps.py, polish_agile_template.py
+├── scripts/           # generate_architecture.py, start_api.py, update_milestone4.py
 ├── templates/         # Agile / Defect Tracker / Unit Test Plan workbooks
-├── tests/             # 93 automated tests
+├── tests/             # 276 automated tests
 ├── tools/             # Enterprise tool framework + security guards
 ├── user_files.py      # Private per-user upload library (user_data/uploads/)
 ├── workflow/          # WorkflowManager (5-stage collaborative pipeline)
@@ -233,14 +269,25 @@ Python · Streamlit · SQLite · Groq / OpenAI / Gemini / Anthropic / Ollama (LL
 
 The `templates/` folder ships filled agile workbooks tracking the whole project:
 
-- **Agile_Template_Filled.xlsx** — Product Backlog, Sprint Backlog (with day grids), Stand-up Meeting, Retrospection — Sprints 1–3
+- **Agile_Template_Filled.xlsx** — Product Backlog, Sprint Backlog (with day grids), Stand-up Meeting, Retrospection — Sprints 1–4
 - **Defect_Tracker_Filled.xlsx** — every bug found and fixed, by sprint
-- **Unit_Test_Plan_Filled.xlsx** — test cases TC-001…TC-032
+- **Unit_Test_Plan_Filled.xlsx** — test cases TC-001…TC-043
 
-Sprint 3 rows reflect the current state of the product (consumer UI, quick actions, My Files, exact analytics, upload dedupe and attached-file routing). Sprint 1 & 2 document the original milestones. Rows are kept contiguous with `scripts/fix_template_gaps.py`, and Sprint Backlog / Retrospection polish is handled by `scripts/polish_agile_template.py` (both idempotent).
+Sprint 4 rows reflect the current state of the product (Google Sign-In, intent-based routing with follow-up context, uploaded project ZIP analysis, clean agent output, UI polish, and the 276-test regression suite). Sprints 1–3 document the original milestones (agents, tools, consumer UI). Sprint data can be extended idempotently with `scripts/update_milestone4.py`.
+
+---
+
+## ⚠️ Known Limitations
+
+- **Groq free-tier rate limits.** The default provider's free tier caps tokens per minute. Heavy
+  multi-stage workflows (a full "build → review → debug → document" chain) can exceed the
+  per-minute budget. The app handles this gracefully: a user-friendly rate-limit message, a
+  one-shot retry on the alternate model, and no endless retries or quota-burning loops. If a
+  workflow is blocked by the external limit it is recorded as *Blocked by external rate limit*,
+  not as an application failure — retrying after the quota window resets usually succeeds.
 
 ---
 
 ## ✅ Conclusion
 
-The **Multi-AI-Agent Coding Assistant** (v2.1.0) demonstrates a production-style multi-agent architecture: an intelligent Decision Engine routes requests to specialized agents, a Coordinator orchestrates them, a collaborative Workflow chains five agents together, enterprise tools + MCP servers enable real operations, a hybrid memory + database layer persists everything, and a consumer-grade Streamlit UI makes it all feel like a modern commercial AI product — validated by 93 automated tests.
+The **Multi-AI-Agent Coding Assistant** (v2.1.0) demonstrates a production-style multi-agent architecture: an intelligent Decision Engine routes requests to specialized agents, a Coordinator orchestrates them, a collaborative Workflow chains agents together, enterprise tools + MCP servers enable real operations, a hybrid memory + database layer persists everything, output constraints (exact word counts, "only code" responses) and tool-instruction hygiene (no PATCH/FILE leaks into user-visible output) are enforced programmatically — validated by **276 automated tests**.

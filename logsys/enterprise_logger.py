@@ -15,6 +15,9 @@ from logging.handlers import RotatingFileHandler
 LOG_DIR = "logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 
+# Level comes from the LOG_LEVEL env var (production deployment).
+_LOG_LEVEL = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
+
 _FORMAT = "%(asctime)s | %(levelname)s | %(category)s | %(message)s"
 
 
@@ -68,7 +71,7 @@ def get_logger(category="app"):
 
         filename = LogCategories[category]
         logger = logging.getLogger(f"enterprise.{category}")
-        logger.setLevel(logging.INFO)
+        logger.setLevel(_LOG_LEVEL)
         logger.propagate = False
 
         handler = RotatingFileHandler(
@@ -79,6 +82,12 @@ def get_logger(category="app"):
         )
         handler.setFormatter(logging.Formatter(_FORMAT))
         logger.addHandler(handler)
+
+        # Console handler so container platforms can collect logs.
+        console = logging.StreamHandler()
+        console.setLevel(_LOG_LEVEL)
+        console.setFormatter(logging.Formatter(_FORMAT))
+        logger.addHandler(console)
 
         facade = _CategoryLogger(logger, category)
         _registry[category] = facade

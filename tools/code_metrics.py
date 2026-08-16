@@ -195,8 +195,47 @@ def security_score(code):
     return max(0, min(100, score))
 
 
+def class_count(code):
+    """Number of class definitions (0 when code cannot be parsed)."""
+    tree = _parse(code)
+    if tree is None:
+        return 0
+    return sum(
+        1 for n in ast.walk(tree) if isinstance(n, ast.ClassDef)
+    )
+
+
+def import_count(code):
+    """Number of import statements (0 when code cannot be parsed)."""
+    tree = _parse(code)
+    if tree is None:
+        return 0
+    return sum(
+        1 for n in ast.walk(tree)
+        if isinstance(n, (ast.Import, ast.ImportFrom))
+    )
+
+
+def variable_count(code):
+    """Number of assigned names at module level and in function bodies."""
+    tree = _parse(code)
+    if tree is None:
+        return 0
+    count = 0
+    for n in ast.walk(tree):
+        if not isinstance(n, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            continue
+        targets = getattr(n, "targets", None) or [getattr(n, "target", None)]
+        for t in targets:
+            if isinstance(t, ast.Name) and not t.id.startswith("_"):
+                count += 1
+    return count
+
+
 def analyze(code):
     """Run the full metrics suite and return a structured report."""
+    tree = _parse(code)
+    parse_ok = tree is not None
     complexities = function_complexities(code)
     max_complexity = max((c for _, c, _ in complexities), default=0)
     doc = documentation_coverage(code)
@@ -213,8 +252,12 @@ def analyze(code):
     )
 
     return {
+        "parse_ok": parse_ok,
         "lines_of_code": len(code.splitlines()),
         "function_count": len(complexities),
+        "class_count": class_count(code),
+        "import_count": import_count(code),
+        "variable_count": variable_count(code),
         "cyclomatic_complexity": {
             "average": round(
                 (sum(c for _, c, _ in complexities) / len(complexities))

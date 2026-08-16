@@ -13,7 +13,7 @@ class DecisionEngine:
     CATEGORIES = {
         "github", "project", "debug", "documentation", "planner",
         "execution", "patch", "file", "coding", "memory_store",
-        "memory_recall", "workflow", "chat", "code_analysis",
+        "memory_recall", "workflow", "chat", "code_analysis", "review",
     }
 
     # Map common LLM synonyms onto canonical categories
@@ -34,6 +34,9 @@ class DecisionEngine:
         "codeanalysis": "code_analysis",
         "analyze_code": "code_analysis",
         "analysis": "code_analysis",
+        "reviewer": "review",
+        "code_review": "review",
+        "codereview": "review",
     }
 
     def __init__(self, model=None, guard=None, use_llm=True):
@@ -41,39 +44,52 @@ class DecisionEngine:
         self.guard = guard
         self.use_llm = use_llm and model is not None
 
+        # Routing cache (Milestone 4 - performance). Repeated or
+        # turn-based phrasing ("review it", "optimize it") is classified
+        # once and answered from memory, skipping the LLM classifier call
+        # on follow-ups. Size-capped: when full the cache resets, so it
+        # can never grow unbounded.
+        self._cache = {}
+        self._CACHE_MAX = 256
+
         # ---------------- keyword lists (fallback) ----------------
         self.code_analysis_keywords = [
             "analyze this code", "analyze the code", "analyze code",
             "analyze this python", "analyze the following code",
             "analyse this code", "analyse the code", "analyse code",
-            "review this code", "review the code", "review this python",
-            "review this python file", "review this file",
-            "review the following", "code review",
-            "explain this code", "explain the code",
-            "explain this source code", "explain the source code",
-            "explain this python", "explain this file",
             "check code quality", "code quality", "code smell",
             "code smells", "quality score", "find issues in this code",
             "find issues in the code", "find issues in this python",
             "audit this code", "inspect this code", "static analysis",
             "code analysis",
             # Terse relative forms used with uploaded/attached files:
-            # "analyse it" / "review it" / "explain it" etc. must land
-            # here (and NOT on the file tool) when a file is attached.
-            # (Deliberately "X it", never bare "X this", so requests like
-            # "Analyze this project" still route to project analysis.)
-            "analyze it", "analyse it", "review it", "explain it",
-            "analyze that", "analyse that", "review that", "explain that",
+            # "analyse it" / "review it" must land here (and NOT on the
+            # file tool) when a file is attached. "explain" is NOT
+            # analysis: per the response-quality spec, explain requests
+            # route to the Documentation Agent (or Chat when no code is
+            # in context). (Deliberately "X it", never bare "X this", so
+            # requests like "Analyze this project" still route to project
+            # analysis.)
+            "analyze it", "analyse it",
+            "analyze that", "analyse that",
             "analyze the attached file", "analyse the attached file",
-            "review the attached file", "explain the attached file",
             "analyze the uploaded file", "analyse the uploaded file",
-            "review the uploaded file", "explain the uploaded file",
+            # Follow-up phrasings on previously generated code / an active
+            # application (Milestone 5 - intelligent follow-up).
+            "time complexity", "explain time complexity", "space complexity",
+            "explain space complexity", "code complexity", "analyze the generated",
+            "analyse the generated", "analyze the application",
+            "analyse the application", "analyze the generated application",
+            "analyze the generated code", "analyze complexity",
         ]
         self.debug_keywords = [
-            "debug", "fix", "bug", "error", "traceback", "exception"
+            "debug", "fix", "bug", "error", "traceback", "exception",
+            "root cause", "crash"
         ]
         self.doc_keywords = [
-            "explain", "documentation", "document", "comment", "describe"
+            "explain", "documentation", "document", "comment", "describe",
+            "readme", "api documentation", "usage guide", "user guide",
+            "docstring", "comments",
         ]
         self.planner_keywords = [
             "plan", "planning", "design", "roadmap", "workflow",
@@ -94,6 +110,13 @@ class DecisionEngine:
         self.github_keywords = [
             "github", "repository", "repo", "stars", "forks"
         ]
+        # Documentation-GENERATION phrasings must route to the Documentation
+        # Agent even when they mention a project ("Generate README for this
+        # project") - the intent is docs, not project analysis.
+        self.doc_generation_words = [
+            "readme", "documentation", "document", "comment", "comments",
+            "docstring", "usage guide", "user guide", "api documentation",
+        ]
         self.workflow_keywords = [
             "build", "develop", "create an application",
             "create a system", "design a system", "build a system",
@@ -105,7 +128,12 @@ class DecisionEngine:
         self.coding_keywords = [
             "write", "code", "program", "script", "function", "class",
             "implement", "generate", "algorithm", "calculate",
-            "compute", "create a function"
+            "compute", "create a function",
+            # Follow-up verbs: "optimize it", "refactor this", "improve it"
+            # must stay in the coding flow so previous context is reused.
+            "optimize", "refactor", "improve", "rewrite", "enhance",
+            "make it async", "convert it", "convert", "add", "fix",
+            "deploy"
         ]
         self.memory_store_patterns = [
             r"\bmy name is\b",
@@ -147,7 +175,13 @@ class DecisionEngine:
             r"\bwhat('s| is) my favorite\b",
             r"\bwhat('s| is) my favourite\b",
             r"\bwho is my (favorite|favourite|best|closest)\b",
+            r"\bdo i (like|prefer|use|enjoy)\b",
+            r"\bwhich (programming language|language|framework|tool)\b.*\bdo i\b",
         ]
+        # "Which X do I ..." questions about the user's own preferences.
+        self.RECALL_ABOUT_ME_RE = re.compile(
+            r"\bwhich\b.*\bdo i\b", re.IGNORECASE
+        )
         self.chat_patterns = [
             r"^(what|who|why|how|when|where|which|is it|can you)\b",
             r"\bwhat is\b",
@@ -161,21 +195,113 @@ class DecisionEngine:
             r"^(hi|hello|hey|thanks|thank you|good (morning|afternoon|evening))\b",
         ]
 
+    # Chain workflows (Milestone 4 - complex orchestration).
+    # Explicit compound requests only - a bare "debug", "review" or
+    # "explain" keeps its single-agent routing (backward compatible).
+    CHAIN_PATTERNS = {
+        # Write Code -> Code Analysis -> Reviewer -> Documentation
+        # (checked first: a coding-first compound request must win over
+        # the explain_document patterns, which only see the later
+        # "review ... and generate documentation" clause).
+        "code_review_docs": [
+            # write/build ... code ... and then review/debug/analyze/fix/document
+            r"^(write|build|create|generate|develop|implement|make)\b.*\b(code|python|java|javascript|function|endpoint|api|script|program|application|app|module)\b.*\b(and|then|also)\b.*\b(review|debug|analy[sz]e|find|fix|improve|document)\b",
+            # write/build ... code ..., <verb1> ..., <comma/and>, <verb2> ...
+            # (compound pipeline like "..., review it, fix any issues, ...")
+            r"^(write|build|create|generate|develop|implement|make)\b.*\b(code|python|java|javascript|function|endpoint|api|script|program|application|app|module)\b.*\b(review|debug|analy[sz]e|find|fix|improve)\b.*\b(,|and|then)\b.*\b(review|debug|analy[sz]e|fix|improve|document|provide|give)\b",
+            # write/build ... and then document / generate documentation
+            r"^(write|build|create|generate|develop|implement|make)\b.*\b(and|then|also)\b.*\b(document|generate documentation)\b",
+        ],
+        # Review Project -> Project Analyzer -> Reviewer
+        # Review + fix in one request: Project Analyzer -> Reviewer ->
+        # Coding. Checked BEFORE the plain review_project patterns so
+        # "Review this project and fix the most important bug" runs the
+        # full pipeline instead of stopping after the review.
+        "review_project_fix": [
+            r"review\s+(the\s+|this\s+|my\s+|our\s+)?(entire\s+|whole\s+)?"
+            r"(project|codebase|application|app)(?!\s+code).*\b(and|then|also)\b"
+            r".*\b(fix|repair|solve|correct)\b",
+            # "Review and fix this project" - the fix verb comes before the
+            # project noun. The project word must follow the fix verb, so
+            # "Review this code and fix it" is NOT pulled into the chain.
+            r"\breview\b.*\b(and|then|also)\b.*\b(fix|repair|solve|correct)\b"
+            r".*\b(project|codebase|application|app)\b",
+            r"\b(fix|repair|solve|correct)\b.*\b(the\s+)?(most\s+)?"
+            r"(important\s+|critical\s+|biggest\s+)?(bug|issue|problem|error)\b"
+            r".*\b(in|of)\b.*\breview\b.*\b(project|codebase|application|app)\b",
+        ],
+        "review_project": [
+            r"review\s+(the\s+|this\s+|my\s+|our\s+)?(entire\s+|whole\s+)?(project|codebase|application|app)(?!\s+code)",
+            r"\bproject\s+review\b",
+            r"\breview\s+the\s+(project|codebase|application|app)\s+(architecture|structure|quality|health|overall)",
+            r"\b(review|audit)\s+(the\s+)?(entire\s+|whole\s+)?(project|codebase)\s+(for|to|and)",
+        ],
+        # Debug Code -> Debugger -> Documentation
+        "debug_document": [
+            r"debug.*\b(and|then|also)\b.*\bdocument",
+            r"\bdocument.*\b(and|then|also)\b.*\bdebug",
+            r"debug.*\bdocumentation\b",
+            r"\bfix\s+(the\s+|this\s+)?(bug|error|issue).*\b(and|then)\b.*\bdocument",
+            r"\bdebug\b.*\b(create|write|generate)\b.*\bdocumentation",
+        ],
+        # Explain Code -> Code Analysis -> Documentation
+        "explain_document": [
+            r"\b(explain|analy[sz]e|review)\b.*\b(and|then)\b.*\b(generate\s+)?(documentation|document|docs)",
+            r"\b(explain|analy[sz]e)\b.*\bdocumentation\b",
+            r"\b(explain|analy[sz]e)\b.*\b(generate|write|create)\b.*\bdocs\b",
+            r"\b(generate|write|create)\b.*\bdocumentation.*\b(and|then)\b.*\b(explain|analy[sz]e)",
+        ],
+    }
+
+    def detect_chain(self, task):
+        """Return a compound-workflow chain id when the request describes
+        a multi-stage workflow (e.g. "review the project", "debug this
+        code and document the fix"), else None.
+
+        Only explicit compound phrasing triggers a chain - single-intent
+        requests ("debug this", "explain this code") keep their existing
+        single-agent routing, so nothing that worked before changes.
+        """
+        task_lower = self._strip_attachments(task.lower())
+        for chain, patterns in self.CHAIN_PATTERNS.items():
+            for pattern in patterns:
+                if re.search(pattern, task_lower):
+                    return chain
+        return None
+
     # ===================== public API =====================
     def decide(self, task):
         """
         Classify a user request into one of the categories.
         Returns: str (one of self.CATEGORIES)
         """
-        # Classify only the user's own words. The UI inlines uploaded file
-        # content after a "[Attached file: ...]" marker - that content must
-        # not influence routing (e.g. a filename like test.py must not look
-        # like an execution request, and file content must not look like a
-        # build/debug request). The handlers still receive the full task.
         task_lower = self._strip_attachments(task.lower())
+        cached = self._cache.get(task_lower)
+        if cached is not None:
+            return cached
+        intent = self._decide_uncached(task_lower)
+        if len(self._cache) >= self._CACHE_MAX:
+            self._cache.clear()
+        self._cache[task_lower] = intent
+        return intent
 
-        # Fast path: unambiguous personal-information statements.
-        if self.is_memory_recall(task_lower) and not self._mentions_coding(task_lower):
+    def _decide_uncached(self, task_lower):
+        """The actual classification logic (runs on cache misses only).
+
+        ``task_lower`` is already attachment-stripped: the UI inlines
+        uploaded file content after a "[Attached file: ...]" marker - that
+        content must not influence routing (e.g. a filename like test.py
+        must not look like an execution request). The handlers still
+        receive the full task.
+        """
+        # Fast path: unambiguous personal-information statements. Recall
+        # questions of the form "Which <language/framework/tool> do I
+        # <like/use>?" are about the USER even when a coding word appears
+        # ("programming language") - never misroute them to coding.
+        if self.is_memory_recall(task_lower) and (
+            not self._mentions_coding(task_lower)
+            or self.RECALL_ABOUT_ME_RE.search(task_lower)
+        ):
             return "memory_recall"
         if self.is_memory_store(task_lower) and not self._mentions_coding(task_lower):
             return "memory_store"
@@ -187,6 +313,21 @@ class DecisionEngine:
         if self.is_file_task(task_lower) and self.is_patch_task(task_lower):
             return "file"
 
+        # Fast path: explicit analyze-the-code requests are deterministic.
+        # The LLM occasionally maps "Analyze this Python code" onto the
+        # documentation examples ("Explain this code") and misroutes it to
+        # the Documentation Agent - that is exactly what happened live with
+        # a real model. An explicit "analyze" verb with real code evidence
+        # must always reach Code Analysis, before the LLM is trusted.
+        # "Analyze this project" carries no code evidence, so it is
+        # unaffected; review/explain phrasings are deliberately not
+        # intercepted here.
+        if (
+            re.search(r"\banaly[sz]e\b", task_lower)
+            and self.is_code_analysis_task(task_lower)
+        ):
+            return "code_analysis"
+
         intent = self._classify_with_llm(task_lower)
         if intent in self.CATEGORIES:
             return intent
@@ -195,14 +336,21 @@ class DecisionEngine:
 
     @staticmethod
     def _strip_attachments(task):
-        """Remove the UI's attached-file marker and everything after it.
+        """Remove UI/coordinator context blocks appended after the request.
 
-        The marker ("[Attached file: name]\n<content>") is appended by the
-        UI when the user attaches a file, so everything from the marker on
-        is the file content, not the user's request.
+        Everything from the first marker on is context - attached files,
+        previously generated code, the active-context block or the
+        response-requirements block - never part of the user's intent, so
+        routing must ignore it. Markers added since Milestone 5:
+        "[Active context]" (coordinator follow-up block) and
+        "[Response requirements]" (directive block).
         """
         match = re.search(
-            r"\[(?:Attached|Uploaded) file:", task, flags=re.IGNORECASE
+            r"\[(?:Attached|Uploaded) (?:file|project):|"
+            r"\[Previously generated code\]|\[Previous assistant response\]|"
+            r"\[Active context\]|\[Response requirements\]|\[Active task mode:",
+            task,
+            flags=re.IGNORECASE,
         )
         return task[: match.start()].strip() if match else task
 
@@ -270,10 +418,30 @@ Categories:
   ("Build a calculator app", "Could you develop software that manages books?")
 - coding: user wants code for a specific programming task or algorithm
   ("Write a Python function to find factorial", "Write code to sort a list")
-- code_analysis: user wants EXISTING code analyzed/reviewed/explained/quality-checked
-  ("Analyze this code", "Review this Python file", "Check code quality",
-   "Find issues in this code", "Explain this source code")
-- debug: user wants help fixing an error or bug ("Fix this error", "Why does my code crash?")
+- code_analysis: user wants EXISTING code analyzed/quality-checked, or its
+  complexity explained ("Analyze this code", "Check code quality",
+   "Find issues in this code", "Analyze it", "Explain time complexity",
+   "Explain space complexity")
+- review: user wants a code review of existing code ("Review this code",
+  "Review it", "Review the generated application", "Code review")
+- debug: user wants help fixing an error or bug ("Fix this error", "Why does my code crash?",
+  "Find bugs", "Fix it", "Debug it", "Find the root cause")
+- documentation: user wants documentation or explanation of code
+  ("Document this code", "Explain this code", "Explain this function",
+   "Explain it", "Add comments", "Generate README", "Explain in 100 words",
+   "Explain the architecture", "Explain line by line")
+- coding: user wants code for a specific programming task or algorithm
+  ("Write a Python function to find factorial", "Write code to sort a list",
+   "Optimize it", "Convert it into Java", "Add Login Module", "Improve the code")
+
+Follow-up requests: a short message that references the previous turn
+("it", "this", "above", "the code", "the app") acts on the existing
+topic/code - pick the agent that would act on that context (coding
+for optimize/convert/add/improve, review for review, code_analysis for
+analyze/complexity, documentation for explain/comments/readme, debug
+for bugs/errors). A message with a brand-new subject ("Explain
+Operating System", "Explain Cloud Computing") is a NEW TOPIC and
+should be classified normally.
 - documentation: user wants documentation or explanation of code
   ("Document this code", "Explain this function")
 - planner: user wants a plan, design, or roadmap, not code
@@ -295,15 +463,42 @@ Category:
 """
 
     # ===================== keyword fallback =====================
+    # Explicit review phrasings ("review this code", "review it") route
+    # to the dedicated Reviewer Agent; "review the project/codebase" is
+    # the multi-agent Project Review chain (detected separately).
+    REVIEW_PHRASES = (
+        "review this code", "review the code", "review the above code",
+        "review this python", "review this file", "review it",
+        "review that", "review the attached", "review the uploaded",
+        "review the generated", "review the application",
+        "review the above", "review the following", "code review",
+    )
+
+    def is_review_task(self, task):
+        t = task.lower()
+        if any(p in t for p in self.REVIEW_PHRASES):
+            return True
+        return bool(
+            re.search(r"\breview\b.*\b(code|file|script|application|generated|above)\b", t)
+        )
+
     def _keyword_fallback(self, task):
         if self.is_github_task(task):
             return "github"
         # Code analysis is checked before project/documentation so
         # "analyze this code" routes here while "analyze this project"
         # still routes to project analysis.
+        if self.is_review_task(task):
+            return "review"
         if self.is_code_analysis_task(task):
             return "code_analysis"
-        if self.is_project_task(task):
+        if (
+            self.is_project_task(task)
+            and not any(w in task for w in self.doc_generation_words)
+            # A BUILD request that merely mentions "project" ("Build a
+            # project management app") is a workflow, not project analysis.
+            and not self.is_workflow_task(task)
+        ):
             return "project"
         # Modification requests that reference an actual file (e.g.
         # "update test_demo.py to print goodbye") route to the File Tool,
@@ -319,6 +514,11 @@ Category:
             return "execution"
         if self.is_debug_task(task):
             return "debug"
+        # Planner is checked BEFORE workflow: "step-by-step plan for
+        # building..." and "development plan" must reach the Planner even
+        # though "build"/"develop" substring-match the workflow keywords.
+        if self.is_planner_task(task):
+            return "planner"
         if self.is_workflow_task(task):
             return "workflow"
         # Concept questions like "Explain recursion" are general chat,
@@ -329,8 +529,6 @@ Category:
             return "documentation"
         if self.is_documentation_task(task):
             return "documentation"
-        if self.is_planner_task(task):
-            return "planner"
         # Coding is checked before chat so "How do I write a function..."
         # routes to Coding, not Chat, even in fallback-only mode.
         if self.is_coding_task(task):

@@ -83,6 +83,10 @@ class ShortTermMemory:
         for m in messages:
             role = m.get("role", "user")
             msg = m.get("message", "")
+            # Cap each message so the history block can never blow past
+            # the provider's per-minute token ceiling (Groq 8B: 6k TPM).
+            if len(msg) > 1500:
+                msg = msg[:1500] + "\n…(truncated)"
             lines.append(f"{role.capitalize()}: {msg}")
         return "\n\n".join(lines)
 

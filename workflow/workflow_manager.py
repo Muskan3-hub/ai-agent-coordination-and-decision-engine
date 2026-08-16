@@ -3,40 +3,93 @@ from memory.shared_memory import SharedMemory
 
 class WorkflowManager:
     """
-    Collaborative multi-agent workflow.
+    Collaborative multi-agent Build-Application workflow.
 
-    Pipeline (Task 7):
-        Planner -> Coding -> Reviewer -> Code Analysis -> Documentation
+    Pipeline (upgraded):
+        Planner -> Coding -> Documentation
 
     Every stage reads the outputs of the previous stages from Shared
     Memory, so each agent receives real context instead of duplicated
-    prompt text.
+    prompt text. The per-stage methods are reused by the LangGraph flow
+    (agents/graph.py), so the graph and the sequential ``execute()``
+    path share exactly the same logic.
     """
 
     STAGES = [
         "Planner Agent",
         "Coding Agent",
-        "Reviewer Agent",
-        "Code Analysis Agent",
         "Documentation Agent",
     ]
 
-    def __init__(
-        self,
-        planner,
-        coding,
-        reviewer,
-        code_analysis,
-        documentation,
-    ):
+    def __init__(self, planner, coding, documentation):
         self.planner = planner
         self.coding = coding
-        self.reviewer = reviewer
-        self.code_analysis = code_analysis
         self.documentation = documentation
 
         self.memory = SharedMemory()
 
+    # ------------------------------------------------------------------
+    # Individual stages (shared with the LangGraph workflow sub-graph)
+    # ------------------------------------------------------------------
+    def planner_stage(self, task, context=""):
+        plan = self.planner.execute(task, context)
+        self.memory.store("planner_output", plan)
+        return plan
+
+    def coding_stage(self, task, plan=None):
+        plan = plan or self.memory.get("planner_output") or ""
+        coding_input = f"""
+User Task:
+
+{task}
+
+
+Implementation Plan:
+
+{plan}
+
+
+Rules for the implementation:
+- Implement EXACTLY what the plan describes; do not add features the
+  plan does not mention (no "database" or "persistent storage" unless
+  the plan actually specifies one - if the plan says in-memory, store
+  data in Python dictionaries/lists and do NOT claim otherwise).
+- Return complete, RUNNABLE code with every function defined and every
+  import at the top of the file.
+- Keep each method/function reasonably short; break repeated CRUD
+  patterns into small helpers instead of duplicating them.
+- Validate inputs where a wrong value would genuinely crash or corrupt
+  the app; do not add validation for its own sake.
+
+Return only the complete code for the application
+(no markdown fences, no explanations).
+"""
+        code = self.coding.solve_task(coding_input)
+        self.memory.store("coding_output", code)
+        return code
+
+    def documentation_stage(self, task, code=None):
+        code = code or self.memory.get("coding_output") or ""
+        documentation_input = f"""
+Task:
+
+{task}
+
+
+Code:
+
+{code}
+
+
+Write clear, complete documentation for this application.
+"""
+        docs = self.documentation.explain(documentation_input)
+        self.memory.store("documentation_output", docs)
+        return docs
+
+    # ------------------------------------------------------------------
+    # Sequential pipeline (kept for non-graph callers)
+    # ------------------------------------------------------------------
     def execute(self, task, context="", progress_callback=None):
         """
         Run the full pipeline.
@@ -55,86 +108,18 @@ class WorkflowManager:
             if progress_callback is not None:
                 progress_callback(index, total, name)
 
-        # -------------------------
         # 1. Planner Agent
-        # -------------------------
         notify(1, self.STAGES[0])
-        plan = self.planner.execute(task, context)
-        self.memory.store("planner_output", plan)
-        results["planner"] = plan
+        results["planner"] = self.planner_stage(task, context)
 
-        # -------------------------
         # 2. Coding Agent - reads planner output from Shared Memory
-        # -------------------------
         notify(2, self.STAGES[1])
-        plan_from_memory = self.memory.get("planner_output") or plan
+        results["coding"] = self.coding_stage(task, results["planner"])
 
-        coding_input = f"""
-User Task:
-
-{task}
-
-
-Implementation Plan:
-
-{plan_from_memory}
-"""
-
-        code = self.coding.solve_task(coding_input)
-        self.memory.store("coding_output", code)
-        results["coding"] = code
-
-        # -------------------------
-        # 3. Reviewer Agent - reviews coding output from Shared Memory
-        # -------------------------
+        # 3. Documentation Agent - reads the code from Shared Memory
         notify(3, self.STAGES[2])
-        code_from_memory = self.memory.get("coding_output") or code
-
-        review = self.reviewer.review(code_from_memory)
-        self.memory.store("review_output", review)
-        results["review"] = review
-
-        # -------------------------
-        # 4. Code Analysis Agent - analyzes code from Shared Memory
-        # -------------------------
-        notify(4, self.STAGES[3])
-        code_for_analysis = self.memory.get("coding_output") or code
-
-        analysis = self.code_analysis.analyze(code_for_analysis)
-        self.memory.store("code_analysis_output", analysis)
-        results["code_analysis"] = analysis
-
-        # -------------------------
-        # 5. Documentation Agent - reads code + review + analysis
-        # -------------------------
-        notify(5, self.STAGES[4])
-        code_for_docs = self.memory.get("coding_output") or code
-        review_for_docs = self.memory.get("review_output") or review
-        analysis_for_docs = self.memory.get("code_analysis_output") or analysis
-
-        documentation_input = f"""
-Task:
-
-{task}
-
-
-Code:
-
-{code_for_docs}
-
-
-Review:
-
-{review_for_docs}
-
-
-Code Analysis:
-
-{analysis_for_docs}
-"""
-
-        docs = self.documentation.explain(documentation_input)
-        self.memory.store("documentation_output", docs)
-        results["documentation"] = docs
+        results["documentation"] = self.documentation_stage(
+            task, results["coding"]
+        )
 
         return results

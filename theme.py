@@ -1,34 +1,80 @@
 """Design system for the AI Coding Assistant UI.
 
-Modern, consumer-grade look: deep purple-accented dark theme (plus a light
-theme), rounded cards, soft shadows, smooth animations and clean typography.
-All presentation lives here — backend/agent logic never touches this file.
+Modern, consumer-grade look: deep purple-accented dark theme, rounded
+cards, soft shadows, smooth animations and clean typography. All
+presentation lives here — backend/agent logic never touches this file.
 """
+
 import html as _html
 
-# ----------------------------------------------------------------------
-# Utilities
-# ----------------------------------------------------------------------
+_BASE_CSS = '\nhtml, body, .stApp, p, li, div, label, span, h1, h2, h3, h4, h5, h6,\ninput, textarea, button, select, [class*="css"] {\n    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",\n                 Roboto, "Helvetica Neue", Arial, sans-serif;\n    color: var(--text);\n}\nh1, h2, h3, h4 { font-weight: 760; letter-spacing: -0.02em; }\np, li { line-height: 1.65; }\ncode, pre, [data-testid="stCodeBlock"] * {\n    font-family: "SFMono-Regular", "JetBrains Mono", Consolas, monospace;\n}\na { color: var(--accent2); text-decoration: none; }\na:hover { text-decoration: underline; }\n\n#MainMenu, footer { visibility: hidden; height: 0; }\n[data-testid="stHeader"] { background: transparent; }\n[data-testid="stDecoration"] { display: none; }\n.block-container { padding-top: 1.7rem; padding-bottom: 5rem; max-width: 1240px; }\n[data-testid="stToolbar"] { right: 1rem; }\n/* Hide Streamlit\'s built-in Deploy / main-menu buttons (not used by this\n   app) while KEEPING the sidebar expand/collapse controls visible - they\n   also live inside stToolbar and must not be hidden. */\n[data-testid="stDeployButton"],\n[data-testid="stMainMenu"],\n[data-testid="stToolbar"] [data-testid="stPopoverButton"],\n[data-testid="stToolbar"] [data-testid="stMainMenu"] { display: none !important; }\n[data-testid="stToolbar"] [data-testid="stSidebarCollapseButton"],\n[data-testid="stToolbar"] [data-testid="stExpandSidebarButton"] { display: inline-flex !important; }\n\n::-webkit-scrollbar { width: 9px; height: 9px; }\n::-webkit-scrollbar-track { background: transparent; }\n::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }\n::-webkit-scrollbar-thumb:hover { background: var(--accent); }\n\n@keyframes ufFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }\n@keyframes ufPulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }\n@keyframes ufFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }\n\n.stButton > button, [data-testid="stFormSubmitButton"] > button {\n    background: var(--grad); color: #fff; font-weight: 650;\n    border: none; border-radius: 12px; padding: .58rem 1.1rem;\n    transition: all .18s ease; box-shadow: 0 4px 18px rgba(124,58,237,.30);\n}\n.stButton > button:hover:not(:disabled) {\n    transform: translateY(-2px); box-shadow: 0 10px 30px rgba(124,58,237,.45);\n    color: #fff;\n}\n.stButton > button:active:not(:disabled) { transform: translateY(0); }\n.stButton > button[kind="secondary"] {\n    background: var(--surface2); color: var(--text);\n    border: 1px solid var(--border-strong); box-shadow: none;\n}\n.stButton > button[kind="secondary"]:hover:not(:disabled) {\n    background: var(--surface3); color: var(--accent2);\n    border-color: var(--accent); box-shadow: var(--shadow-soft);\n}\n.stButton > button[kind="tertiary"] {\n    background: transparent; color: var(--muted);\n    border: 1px solid var(--border); box-shadow: none;\n}\n.stButton > button[kind="tertiary"]:hover:not(:disabled) {\n    color: var(--danger); border-color: var(--danger); box-shadow: none;\n}\n\n.qa-chip button {\n    background: var(--surface) !important; color: var(--text) !important;\n    border: 1px solid var(--border-strong) !important; border-radius: 14px !important;\n    padding: .7rem .5rem !important; font-size: .92rem !important;\n    box-shadow: var(--shadow-soft) !important; transition: all .18s ease !important;\n    white-space: normal !important; height: auto !important;\n}\n.qa-chip button:hover:not(:disabled) {\n    transform: translateY(-2px) !important;\n    border-color: var(--accent2) !important;\n    box-shadow: var(--glow) !important;\n    background: var(--surface2) !important;\n}\n\n[data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea,\n[data-testid="stNumberInput"] input, [data-testid="stDateInput"] input {\n    background: var(--surface2); border: 1px solid var(--border-strong);\n    border-radius: 12px; color: var(--text);\n}\n[data-testid="stTextInput"] input:focus, [data-testid="stTextArea"] textarea:focus {\n    border-color: var(--accent2); box-shadow: 0 0 0 3px var(--accent-soft);\n}\n[data-testid="stSelectbox"] [data-baseweb="select"] > div {\n    background: var(--surface2); border: 1px solid var(--border-strong);\n    border-radius: 12px; color: var(--text);\n}\n[data-testid="stSelectbox"] [data-baseweb="popover"] { background: var(--surface); border: 1px solid var(--border-strong); }\n[data-testid="stSlider"] [role="slider"] { background: var(--accent2); }\n[data-testid="stToggle"] [role="switch"] { background: var(--surface3); }\n[data-testid="stToggle"] [role="switch"][aria-checked="true"] { background: var(--grad); }\n\n[data-testid="stSegmentedControl"] [data-baseweb="tab-list"] {\n    background: var(--surface2); border: 1px solid var(--border-strong);\n    border-radius: 12px; padding: 4px; gap: 4px;\n}\n[data-testid="stSegmentedControl"] [data-baseweb="tab"] {\n    border-radius: 9px !important; color: var(--muted) !important;\n    background: transparent !important; font-weight: 600 !important;\n}\n[data-testid="stSegmentedControl"] [aria-selected="true"] {\n    background: var(--grad) !important; color: #fff !important;\n    box-shadow: 0 3px 12px rgba(124,58,237,.35);\n}\n\n[data-testid="stFileUploader"] {\n    background: var(--surface); border: 1.5px dashed var(--border-strong);\n    border-radius: 18px; transition: all .2s ease;\n}\n[data-testid="stFileUploader"]:hover, [data-testid="stFileUploader"]:focus-within {\n    border-color: var(--accent2); box-shadow: var(--glow);\n    background: var(--surface2);\n}\n[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] { padding: 1.4rem; }\n[data-testid="stFileUploader"] button {\n    background: var(--surface3); color: var(--text); border: 1px solid var(--border-strong); border-radius: 10px;\n}\n[data-testid="stFileUploader"] [data-testid="stFileUploaderFile"] { background: var(--surface2); border-radius: 10px; }\n\n[data-testid="stTabs"] [data-baseweb="tab-list"] { gap: 6px; }\n[data-testid="stTabs"] [data-baseweb="tab"] {\n    background: var(--surface); border: 1px solid var(--border);\n    border-radius: 11px; padding: 8px 18px; font-weight: 600;\n    color: var(--muted); transition: all .15s ease;\n}\n[data-testid="stTabs"] [data-baseweb="tab"]:hover { color: var(--accent2); border-color: var(--border-strong); }\n[data-testid="stTabs"] [aria-selected="true"] {\n    background: var(--grad) !important; color: #fff !important; border-color: transparent !important;\n}\n[data-testid="stExpander"] {\n    background: var(--surface); border: 1px solid var(--border);\n    border-radius: 15px; overflow: hidden;\n}\n[data-testid="stExpander"] summary { font-weight: 650; }\n[data-testid="stAlert"] { border-radius: 13px; border: 1px solid var(--border); background: var(--surface); }\n[data-testid="stDataFrame"] { border: 1px solid var(--border); border-radius: 15px; overflow: hidden; }\n[data-testid="stDataFrame"] table { background: var(--surface); color: var(--text); }\n[data-testid="stProgress"] [role="progressbar"] > div > div > div > div {\n    background: var(--grad);\n}\n\n/* ---------- Chat messages ---------- */\n[data-testid="stChatMessage"] {\n    background: var(--surface);\n    border: 1px solid var(--border);\n    border-radius: 18px;\n    padding: 16px 18px;\n    margin: 12px 0;\n    box-shadow: var(--shadow-soft);\n    animation: ufFadeUp .3s ease;\n}\n[data-testid="stChatMessage"]:hover { border-color: var(--border-strong); }\n[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {\n    background: linear-gradient(135deg, rgba(124,58,237,.20), rgba(168,85,247,.14));\n    border-color: rgba(168,85,247,.30);\n    margin-left: 12%;\n    border-radius: 18px 18px 6px 18px;\n}\n[data-testid="stChatMessageAvatarUser"],\n[data-testid="stChatMessageAvatarAssistant"] {\n    background: var(--grad);\n    color: #fff !important;\n    font-weight: 700;\n    box-shadow: 0 4px 12px rgba(124,58,237,.40);\n    border: 2px solid rgba(255,255,255,.14);\n}\n[data-testid="stChatMessageAvatarUser"] { border-radius: 14px 14px 14px 4px; }\n\n[data-testid="stChatInput"] {\n    background: var(--surface);\n    border: 1.5px solid var(--border-strong);\n    border-radius: 18px;\n    padding: .4rem .6rem;\n    box-shadow: var(--shadow-soft);\n    transition: all .18s ease;\n}\n[data-testid="stChatInput"]:focus-within {\n    border-color: var(--accent2);\n    box-shadow: var(--glow);\n}\n[data-testid="stChatInput"] textarea { background: transparent !important; color: var(--text) !important; font-size: 1rem !important; }\n[data-testid="stChatInput"] button {\n    background: var(--grad) !important; color: #fff !important;\n    border-radius: 12px !important; box-shadow: 0 4px 14px rgba(124,58,237,.35) !important;\n}\n\n/* ---------- GPT-style chat polish ---------- */\n[data-testid="stChatMessage"] { max-width: 94%; }\n[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) { max-width: 88%; }\n[data-testid="stChatMessage"] .stMarkdown p { margin: .3rem 0; }\n[data-testid="stChatMessage"] .stMarkdown h1,\n[data-testid="stChatMessage"] .stMarkdown h2,\n[data-testid="stChatMessage"] .stMarkdown h3,\n[data-testid="stChatMessage"] .stMarkdown h4 { margin: .6rem 0 .3rem; }\n[data-testid="stChatMessage"] + [data-testid="stChatMessage"] { margin-top: 6px; }\n\n/* Markdown tables */\n.stMarkdown table, [data-testid="stMarkdownContainer"] table {\n    border-collapse: collapse; width: 100%; margin: 10px 0;\n    font-size: .9rem; border: 1px solid var(--border-strong); border-radius: 10px;\n    overflow: hidden;\n}\n.stMarkdown th, [data-testid="stMarkdownContainer"] th {\n    background: var(--surface3); font-weight: 700; text-align: left;\n    border: 1px solid var(--border-strong); padding: 8px 12px;\n}\n.stMarkdown td, [data-testid="stMarkdownContainer"] td {\n    border: 1px solid var(--border); padding: 8px 12px;\n}\n.stMarkdown tr:nth-child(even) td, [data-testid="stMarkdownContainer"] tr:nth-child(even) td {\n    background: var(--surface2);\n}\n\n/* Code blocks */\n[data-testid="stCodeBlock"] {\n    border: 1px solid var(--border); border-radius: 14px; overflow: hidden;\n    margin: 12px 0; background: #0a0913;\n}\n[data-testid="stCodeBlock"] pre { background: #0a0913 !important; padding: 14px 16px !important; }\n[data-testid="stCodeBlock"] code { font-size: 13px !important; line-height: 1.6; }\n.stMarkdown pre {\n    background: #0a0913; border: 1px solid var(--border); border-radius: 14px;\n    padding: 14px 16px; overflow-x: auto;\n}\n.stMarkdown code { background: var(--accent-soft); border-radius: 6px; padding: 1px 6px; font-size: .88em; }\n.stMarkdown pre code { background: transparent; padding: 0; font-size: 13px; }\n\n/* Smooth scrolling */\n[data-testid="stAppViewContainer"] { scroll-behavior: smooth; }\n\n/* ---------- Composer + attach menu ---------- */\n/* The chat input is centered at a readable width; the "+" button is\n   docked to the input\'s left edge (fixed positioning, no JS needed). */\n[data-testid="stChatInput"] {\n    max-width: 920px !important;\n    margin: 0 auto !important;\n}\n/* Remove the large reserved gap below the input so the composer sits\n   close to the bottom edge (ChatGPT-style). */\n[data-testid="stBottomBlockContainer"] {\n    padding-bottom: 10px !important;\n}\n[data-testid="stPopoverButton"] {\n    position: fixed !important;\n    bottom: 22px;\n    left: calc(50% - 460px + 14px);\n    z-index: 1001;\n    width: 42px !important; height: 42px !important;\n    min-width: 42px !important; min-height: 42px !important;\n    background: var(--surface2) !important; color: var(--text) !important;\n    border: 1px solid var(--border-strong) !important; border-radius: 999px !important;\n    font-size: 1.45rem !important; font-weight: 600 !important;\n    box-shadow: var(--shadow-soft) !important; transition: all .18s ease !important;\n    display: inline-flex; align-items: center; justify-content: center;\n    flex-shrink: 0;\n}\n[data-testid="stPopoverButton"]:hover {\n    border-color: var(--accent2) !important; color: var(--accent2) !important;\n    box-shadow: var(--glow) !important;\n}\n/* Hide the popover chevron so the trigger reads as a plain "+" */\n[data-testid="stPopoverButton"] [data-testid="stIconMaterial"] { display: none !important; }\n@media (max-width: 1100px) {\n    [data-testid="stPopoverButton"] { left: 12px; }\n}\n/* The sidebar conversation rows have their own ⋯ menu buttons - keep\n   them in normal flow (the fixed-position rule above is for the composer\n   "+" button only). */\n[data-testid="stSidebar"] [data-testid="stPopoverButton"] {\n    position: static !important;\n    width: 30px !important; height: 30px !important;\n    min-width: 30px !important; min-height: 30px !important;\n    margin: 0 !important;\n    background: transparent !important;\n    border: 1px solid transparent !important;\n    border-radius: 8px !important;\n    box-shadow: none !important;\n    font-size: 1rem !important;\n    color: var(--muted) !important;\n    display: inline-flex; align-items: center; justify-content: center;\n}\n[data-testid="stSidebar"] [data-testid="stPopoverButton"]:hover {\n    background: var(--accent-soft) !important;\n    color: var(--accent2) !important;\n}\n/* Hide the "Press Enter to apply" helper under text inputs (the sidebar\n   search is live, so the hint would be misleading). */\n[data-testid="stTextInput"] [data-testid="InputInstructions"] { display: none !important; }\n\n/* ---------- Sidebar account chip (bottom-left profile menu) ---------- */\n/* Pin the sidebar content to full height so the account chip docks to\n   the bottom, then style the chip (the popover trigger that is a direct\n   child of the sidebar block - NOT inside the chat-row columns). */\n[data-testid="stSidebar"] [data-testid="stVerticalBlock"] { min-height: 100%; }\n[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:has(> [data-testid="stPopoverButton"]) {\n    margin-top: auto;\n}\n[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"] > [data-testid="stPopoverButton"] {\n    position: static !important;\n    width: 100% !important; height: auto !important;\n    min-width: 0 !important; min-height: 0 !important;\n    margin: 0 !important; padding: 10px 13px !important;\n    background: var(--surface) !important;\n    border: 1px solid var(--border-strong) !important;\n    border-radius: 14px !important;\n    box-shadow: var(--shadow-soft) !important;\n    display: flex !important; align-items: center !important;\n    justify-content: flex-start !important; gap: 10px !important;\n    font-size: .93rem !important; font-weight: 650 !important;\n    color: var(--text) !important;\n    transition: all .15s ease !important;\n}\n[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"] > [data-testid="stPopoverButton"]:hover {\n    border-color: var(--accent) !important;\n    box-shadow: var(--glow) !important;\n}\n.profile-avatar {\n    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;\n    background: var(--grad); color: #fff; font-weight: 750; font-size: 13px;\n    display: inline-flex; align-items: center; justify-content: center;\n    box-shadow: 0 3px 10px rgba(124,58,237,.4);\n}\n.profile-name { font-weight: 650; }\n\n/* ---------- Attachment chips above the composer ---------- */\n.attach-chip {\n    display: flex; align-items: center; gap: 8px;\n    padding: 7px 12px; border-radius: 12px;\n    background: var(--accent-soft); border: 1px solid rgba(168,85,247,.35);\n    font-size: .85rem; font-weight: 600; color: var(--text);\n    animation: ufFadeUp .2s ease;\n}\n.attach-chip .attach-chip-meta {\n    color: var(--muted); font-weight: 500; font-size: .74rem;\n    margin-left: auto;\n}\n.attach-remove button {\n    width: 28px !important; height: 28px !important;\n    min-width: 28px !important; min-height: 28px !important;\n    padding: 0 !important; border-radius: 8px !important;\n    background: var(--surface2) !important;\n    border: 1px solid var(--border-strong) !important;\n    color: var(--muted) !important;\n    font-size: .8rem !important; line-height: 1 !important;\n    box-shadow: none !important;\n}\n.attach-remove button:hover {\n    color: var(--danger) !important;\n    border-color: var(--danger) !important;\n}\n.attach-menu-title {\n    font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;\n    color: var(--muted); padding: 2px 4px 10px;\n}\n.share-banner {\n    display: flex; align-items: center; gap: 8px;\n    padding: 10px 14px; margin: 0 0 18px; border-radius: 12px;\n    background: var(--accent-soft); color: var(--accent2);\n    border: 1px solid rgba(168,85,247,.35); font-size: .85rem;\n}\n.share-note {\n    padding: 8px 12px; border-radius: 10px; margin: 2px 0 10px;\n    background: var(--accent-soft); color: var(--text);\n    border: 1px solid var(--border-strong); font-size: .85rem;\n}\n[data-testid="stPopover"] {\n    background: var(--surface) !important; border: 1px solid var(--border-strong);\n    border-radius: 16px; box-shadow: var(--shadow); animation: ufFadeUp .18s ease;\n    padding: 8px;\n}\n[data-testid="stPopover"] button[kind="secondary"] {\n    justify-content: flex-start; text-align: left; font-size: .88rem;\n    padding: .5rem .7rem; border-radius: 10px;\n}\n.attach-upload {\n    margin: 4px 0 10px; padding: 16px 18px;\n    background: var(--surface); border: 1px solid var(--border-strong);\n    border-radius: 16px; box-shadow: var(--shadow-soft); animation: ufFadeUp .25s ease;\n}\n.attach-upload-title { font-size: 13px; font-weight: 650; margin-bottom: 10px; color: var(--text); }\n\n[data-testid="stSidebar"] [role="radiogroup"] { gap: 3px; display: flex; flex-direction: column; }\n[data-testid="stSidebar"] [role="radiogroup"] label {\n    display: flex; align-items: center; gap: 11px;\n    padding: 10px 14px; border-radius: 12px; cursor: pointer;\n    border: 1px solid transparent; transition: all .16s ease;\n    position: relative;\n}\n[data-testid="stSidebar"] [role="radiogroup"] label p { color: var(--muted); font-weight: 550; font-size: .95rem; }\n[data-testid="stSidebar"] [role="radiogroup"] label:hover { background: var(--accent-soft); }\n[data-testid="stSidebar"] [role="radiogroup"] label:hover p { color: var(--text); }\n[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {\n    background: linear-gradient(135deg, rgba(124,58,237,.28), rgba(168,85,247,.16));\n    border-color: rgba(168,85,247,.45);\n    box-shadow: inset 3px 0 0 var(--accent2);\n}\n[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) p { color: var(--text); font-weight: 700; }\n[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) span,\n[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) [data-testid="stIconMaterial"] {\n    color: var(--accent2) !important;\n}\n[data-testid="stSidebar"] [role="radiogroup"] input { display: none; }\n\n[data-testid="stSidebarCollapsedControl"], [data-testid="stSidebarCollapseButton"] {\n    color: var(--accent2) !important; background: var(--accent-soft) !important;\n    border: 1px solid rgba(168,85,247,.4) !important; border-radius: 9px !important;\n}\n[data-testid="stSidebarCollapsedControl"]:hover, [data-testid="stSidebarCollapseButton"]:hover {\n    background: var(--grad) !important; color: #fff !important;\n    box-shadow: 0 4px 14px rgba(124,58,237,.4) !important;\n}\n[data-testid="stSidebarCollapsedControl"] svg, [data-testid="stSidebarCollapseButton"] svg { color: var(--accent2) !important; fill: var(--accent2) !important; }\n[data-testid="stSidebarCollapsedControl"]:hover svg, [data-testid="stSidebarCollapseButton"]:hover svg { color: #fff !important; fill: #fff !important; }\n\n/* ---------- Custom components ---------- */\n.grad-text {\n    background: var(--grad);\n    -webkit-background-clip: text; background-clip: text; color: transparent;\n}\n.side-section {\n    font-size: 10.5px; font-weight: 700; letter-spacing: .12em;\n    text-transform: uppercase; color: var(--muted);\n    margin: 22px 6px 8px;\n}\n.side-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 13px; }\n.side-ico { width: 22px; text-align: center; font-size: 13px; opacity: .9; }\n.side-label { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n.side-val { color: var(--text); font-weight: 650; font-size: 12.5px; }\n\n.side-brand { display: flex; align-items: center; gap: 12px; padding: 6px 4px 4px; }\n.side-logo {\n    width: 42px; height: 42px; border-radius: 13px; flex-shrink: 0;\n    background: var(--grad); display: flex; align-items: center; justify-content: center;\n    font-size: 20px; box-shadow: 0 6px 20px rgba(124,58,237,.45);\n    animation: ufFloat 4s ease-in-out infinite;\n}\n.side-name { font-size: 15px; font-weight: 780; letter-spacing: -.01em; line-height: 1.2; }\n.side-tag { font-size: 11px; color: var(--muted); }\n\n.user-chip {\n    display: flex; align-items: center; gap: 10px; margin-top: 14px;\n    padding: 10px 12px; border: 1px solid var(--border);\n    border-radius: 14px; background: var(--surface);\n    box-shadow: var(--shadow-soft);\n}\n.avatar {\n    width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0;\n    background: var(--grad); color: #fff; font-weight: 700; font-size: 14px;\n    display: flex; align-items: center; justify-content: center;\n    box-shadow: 0 4px 12px rgba(124,58,237,.35);\n}\n.user-name { font-size: 13.5px; font-weight: 700; line-height: 1.2; }\n.user-role { font-size: 11px; color: var(--muted); }\n\n.page-head { margin-bottom: 24px; animation: ufFadeUp .35s ease; }\n.page-title { display: flex; align-items: center; gap: 13px; font-size: 26px; font-weight: 800; letter-spacing: -.025em; }\n.page-icon {\n    width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;\n    background: var(--grad); display: flex; align-items: center; justify-content: center;\n    font-size: 22px; box-shadow: 0 8px 24px rgba(124,58,237,.42);\n}\n.page-sub { color: var(--muted); margin-top: 7px; font-size: 14px; }\n\n.fx-card {\n    background: var(--surface); border: 1px solid var(--border);\n    border-radius: 18px; padding: 20px; transition: all .2s ease;\n    animation: ufFadeUp .3s ease;\n}\n.fx-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow); }\n.fx-card h4 { margin: 0 0 4px; font-size: 15px; font-weight: 720; }\n.fx-card .fx-sub { color: var(--muted); font-size: 12.5px; margin-bottom: 12px; }\n\n.fx-metric {\n    background: linear-gradient(180deg, var(--surface), var(--surface2));\n    border: 1px solid var(--border); border-radius: 18px;\n    padding: 18px 20px; transition: all .2s ease; height: 100%;\n    position: relative; overflow: hidden;\n}\n.fx-metric::after {\n    content: ""; position: absolute; inset: auto -30% -60% auto; width: 120%; height: 80%;\n    background: radial-gradient(140px 80px at 85% 100%, rgba(168,85,247,.18), transparent 70%);\n    pointer-events: none;\n}\n.fx-metric:hover { transform: translateY(-3px); border-color: var(--border-strong); box-shadow: var(--shadow); }\n.fx-metric-row { display: flex; align-items: center; gap: 10px; }\n.fx-icon {\n    width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;\n    display: flex; align-items: center; justify-content: center; font-size: 17px;\n    background: var(--accent-soft); border: 1px solid var(--border);\n}\n.fx-label { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }\n.fx-value { margin-top: 12px; font-size: 27px; font-weight: 780; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }\n.fx-value small { font-size: 13px; color: var(--muted); font-weight: 500; }\n.fx-hint { color: var(--muted); font-size: 11.5px; margin-top: 4px; }\n\n.pill {\n    display: inline-flex; align-items: center; gap: 6px;\n    padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 650;\n    white-space: nowrap;\n}\n.pill.ok { background: rgba(52,211,153,.14); color: var(--success); border: 1px solid rgba(52,211,153,.35); }\n.pill.err { background: rgba(251,113,133,.14); color: var(--danger); border: 1px solid rgba(251,113,133,.35); }\n.pill.warn { background: rgba(251,191,36,.14); color: var(--warn); border: 1px solid rgba(251,191,36,.35); }\n.pill.info { background: var(--accent-soft); color: var(--accent2); border: 1px solid rgba(168,85,247,.35); }\n.pill.dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }\n\n.meta-bar {\n    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;\n    margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border);\n}\n.meta-chip {\n    display: inline-flex; align-items: center; gap: 6px;\n    font-size: 11.5px; font-weight: 600; color: var(--muted);\n    background: var(--surface2); border: 1px solid var(--border);\n    border-radius: 999px; padding: 4px 11px;\n}\n.meta-chip b { color: var(--text); font-weight: 650; }\n.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); animation: ufPulse 1.2s infinite; }\n\n.typing-dots { display: inline-flex; gap: 5px; align-items: center; }\n.typing-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--accent2); animation: ufPulse 1.1s infinite; }\n.typing-dots span:nth-child(2) { animation-delay: .18s; }\n.typing-dots span:nth-child(3) { animation-delay: .36s; }\n\n.uf-copy {\n    background: var(--surface2); color: var(--muted);\n    border: 1px solid var(--border-strong); border-radius: 9px;\n    font-size: 12px; font-weight: 600; padding: 4px 12px; cursor: pointer;\n    transition: all .15s ease; font-family: inherit;\n}\n.uf-copy:hover { color: var(--accent2); border-color: var(--accent2); box-shadow: var(--glow); }\n\n.workflow-banner {\n    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;\n    margin-bottom: 12px; padding: 10px 14px;\n    background: linear-gradient(135deg, rgba(124,58,237,.18), rgba(168,85,247,.10));\n    border: 1px solid rgba(168,85,247,.30); border-radius: 14px;\n}\n.wf-steps { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }\n.wf-step {\n    display: inline-flex; align-items: center; gap: 5px;\n    font-size: 11.5px; font-weight: 650; padding: 4px 10px; border-radius: 999px;\n    background: var(--surface2); color: var(--muted); border: 1px solid var(--border);\n}\n.wf-step.done { background: rgba(52,211,153,.12); color: var(--success); border-color: rgba(52,211,153,.35); }\n\n.qa-prompt {\n    margin: 14px 0 6px; padding: 13px 16px;\n    background: linear-gradient(135deg, rgba(124,58,237,.18), rgba(168,85,247,.10));\n    border: 1px solid rgba(168,85,247,.35); border-radius: 14px;\n    font-size: 14.5px; font-weight: 600; color: var(--text);\n    animation: ufFadeUp .25s ease;\n}\n\n.empty-hero { text-align: center; padding: 3.2rem 1.5rem 2rem; animation: ufFadeUp .4s ease; }\n.empty-hero .eh-icon {\n    width: 72px; height: 72px; margin: 0 auto 1.1rem; border-radius: 22px;\n    background: var(--grad); display: flex; align-items: center; justify-content: center;\n    font-size: 34px; box-shadow: 0 14px 40px rgba(124,58,237,.5);\n    animation: ufFloat 3.5s ease-in-out infinite;\n}\n.empty-hero h2 { font-size: 1.55rem; font-weight: 800; margin: 0 0 .4rem; letter-spacing: -.02em; }\n.empty-hero .eh-sub { color: var(--muted); font-size: .95rem; max-width: 520px; margin: 0 auto; }\n\n.file-card {\n    background: var(--surface); border: 1px solid var(--border);\n    border-radius: 16px; padding: 14px; transition: all .2s ease;\n    height: 100%; position: relative; overflow: hidden;\n}\n.file-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow); transform: translateY(-2px); }\n.file-card .fc-icon {\n    width: 44px; height: 44px; border-radius: 13px; font-size: 20px;\n    display: flex; align-items: center; justify-content: center;\n    background: var(--accent-soft); border: 1px solid var(--border); margin-bottom: 10px;\n}\n.file-card .fc-name { font-weight: 700; font-size: 13.5px; word-break: break-all; line-height: 1.3; }\n.file-card .fc-meta { color: var(--muted); font-size: 11.5px; margin-top: 4px; }\n\n.upload-tip { color: var(--muted); font-size: 12.5px; margin-top: 8px; }\n.preview-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }\n\n.kv-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px dashed var(--border); font-size: 13px; }\n.kv-row:last-child { border-bottom: none; }\n.kv-row .k { color: var(--muted); }\n.kv-row .v { font-weight: 650; }\n\n.legal-body p { margin: 0 0 12px; font-size: .95rem; }\n.legal-body h3 { margin: 18px 0 6px; font-size: 1.02rem; }\n\n.auth-brand { padding: 10px 10px 10px 0; max-width: 560px; }\n.auth-brand .auth-logo {\n    width: 60px; height: 60px; border-radius: 18px;\n    background: var(--grad); display: flex; align-items: center; justify-content: center;\n    font-size: 29px; box-shadow: 0 12px 34px rgba(124,58,237,.5); margin-bottom: 24px;\n    animation: ufFloat 4s ease-in-out infinite;\n}\n.auth-brand h1 { font-size: 2.5rem; font-weight: 820; letter-spacing: -.03em; line-height: 1.1; margin: 0 0 16px; }\n.auth-brand .auth-desc { color: var(--muted); font-size: 1rem; margin-bottom: 26px; }\n.auth-feat { display: flex; gap: 13px; padding: 12px 0; align-items: flex-start; }\n.auth-feat .fi {\n    width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;\n    background: var(--accent-soft); border: 1px solid var(--border);\n    display: flex; align-items: center; justify-content: center; font-size: 16px;\n}\n.auth-feat .ft { font-size: 14px; font-weight: 650; }\n.auth-feat .fd { font-size: 12.5px; color: var(--muted); margin-top: 2px; }\n.auth-stats { display: flex; gap: 26px; margin-top: 26px; }\n.auth-stats .as-n { font-size: 22px; font-weight: 800; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }\n.auth-stats .as-l { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }\n\n.auth-card-head { margin-bottom: 16px; }\n.auth-card-head h2 { font-size: 21px; font-weight: 760; margin: 0 0 3px; }\n.auth-card-head p { color: var(--muted); font-size: 13.5px; margin: 0; }\n[data-testid="stForm"] {\n    background: var(--surface); border: 1px solid var(--border);\n    border-radius: 20px; padding: 26px 26px 10px; box-shadow: var(--shadow);\n}\n.auth-foot { text-align: center; color: var(--muted); font-size: 12px; margin-top: 18px; }\n.auth-switch { text-align: center; color: var(--muted); font-size: 13.5px; margin-top: 16px; }\n.auth-switch .stButton > button {\n    background: transparent !important; border: none !important;\n    box-shadow: none !important; color: var(--accent2) !important;\n    font-weight: 650; padding: 2px 4px; font-size: 13.5px;\n}\n.auth-switch .stButton > button:hover { color: var(--text) !important; transform: none; }\n.auth-divider {\n    display: flex; align-items: center; gap: 12px;\n    color: var(--muted); font-size: 12.5px; margin: 20px 0 4px;\n}\n.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border-strong); }\n\n[data-testid="stSidebar"] .auth-foot { text-align: left; margin-top: 14px; }\n\n/* ---------- Sidebar conversation list (ChatGPT-style) ---------- */\n[data-testid="stSidebar"] .stButton > button {\n    border-radius: 12px !important;\n    text-align: left !important;\n    justify-content: flex-start !important;\n    padding: 9px 13px !important;\n    font-size: .9rem !important;\n    white-space: normal !important;\n    line-height: 1.35 !important;\n    transition: all .15s ease !important;\n}\n[data-testid="stSidebar"] .stButton > button[kind="primary"] {\n    font-weight: 700 !important;\n    box-shadow: 0 6px 22px rgba(124,58,237,.4) !important;\n}\n[data-testid="stSidebar"] .stButton > button[kind="secondary"] {\n    background: transparent !important;\n    border: 1px solid transparent !important;\n    box-shadow: none !important;\n    color: var(--text) !important;\n}\n[data-testid="stSidebar"] .stButton > button[kind="secondary"]:hover:not(:disabled) {\n    background: var(--accent-soft) !important;\n    border-color: transparent !important;\n    color: var(--text) !important;\n    transform: none !important;\n    box-shadow: none !important;\n}\n.side-chat-meta {\n    display: block; font-size: 10.5px; color: var(--muted);\n    font-weight: 500; margin-top: 1px;\n}\n.side-chat-title {\n    display: block; overflow: hidden; text-overflow: ellipsis;\n    white-space: nowrap; max-width: 210px;\n}\n.side-search {\n    margin-bottom: 6px;\n}\n.side-search [data-testid="stTextInput"] input {\n    border-radius: 12px !important; padding: .6rem .85rem !important;\n    background: var(--surface) !important;\n}\n\n/* ---------- Dialogs (rename / delete confirm) ---------- */\n[data-testid="stDialog"] {\n    background: linear-gradient(180deg, var(--surface), var(--surface2)) !important;\n    border: 1px solid var(--border-strong) !important;\n    border-radius: 20px !important;\n    box-shadow: var(--shadow) !important;\n    padding: 8px;\n    animation: ufFadeUp .2s ease !important;\n}\n[data-testid="stDialog"] h2, [data-testid="stDialog"] h1 {\n    font-size: 1.2rem !important; font-weight: 760 !important;\n    letter-spacing: -.02em !important;\n}\n\n/* ---------- Conversation history rows ---------- */\n.hist-active {\n    display: inline-flex; align-items: center; gap: 5px;\n}\n[data-testid="stPopover"] [data-testid="stPopoverBody"] button[kind="secondary"] {\n    justify-content: flex-start !important; text-align: left !important;\n    font-size: .86rem !important; padding: .45rem .65rem !important;\n    border-radius: 9px !important; width: 100% !important;\n}\n[data-testid="stPopover"] [data-testid="stPopoverBody"] button[kind="secondary"]:hover {\n    color: var(--accent2) !important; background: var(--accent-soft) !important;\n}\n[data-testid="stPopover"] [data-testid="stPopoverBody"] button[kind="secondary"]:last-child:hover {\n    color: var(--danger) !important; background: rgba(251,113,133,.1) !important;\n}\n'
+
+_DARK_VARS = '\n:root {\n    --bg: #08070d; --bg2: #0d0b16;\n    --surface: #131120; --surface2: #191626; --surface3: #211d33;\n    --border: rgba(196,181,253,.10); --border-strong: rgba(196,181,253,.22);\n    --text: #f4f2fb; --muted: #9d96b8;\n    --accent: #8b5cf6; --accent2: #a855f7; --accent3: #6366f1;\n    --accent-soft: rgba(139,92,246,.16);\n    --success: #34d399; --warn: #fbbf24; --danger: #fb7185;\n    --shadow: 0 14px 44px rgba(2,0,14,.55);\n    --shadow-soft: 0 6px 22px rgba(2,0,14,.38);\n    --grad: linear-gradient(135deg, #7c3aed 0%, #a855f7 55%, #c084fc 100%);\n    --glow: 0 0 0 1px rgba(168,85,247,.35), 0 8px 30px rgba(124,58,237,.35);\n}\n[data-testid="stAppViewContainer"] {\n    background:\n        radial-gradient(1100px 600px at 8% -12%, rgba(124,58,237,.20), transparent 60%),\n        radial-gradient(900px 560px at 108% 4%, rgba(168,85,247,.14), transparent 55%),\n        radial-gradient(800px 600px at 50% 118%, rgba(99,102,241,.08), transparent 60%),\n        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);\n    background-attachment: fixed;\n    color: var(--text);\n}\n[data-testid="stSidebar"] {\n    background: linear-gradient(180deg, rgba(14,12,24,.96), rgba(10,9,18,.96));\n    border-right: 1px solid var(--border);\n    backdrop-filter: blur(10px);\n}\n'
+
+_OVERFLOW_CSS = (
+    '\n'
+    '/* Markdown tables - fixed layout keeps tables ALWAYS inside their\n'
+    '   container: long cells wrap instead of pushing the table (and the\n'
+    '   chat bubble) past the available width on desktop or mobile. */\n'
+    '.stMarkdown table, [data-testid="stMarkdownContainer"] table {\n'
+    '    border-collapse: collapse; width: 100%; max-width: 100%; margin: 10px 0;\n'
+    '    font-size: .9rem; border: 1px solid var(--border-strong); border-radius: 10px;\n'
+    '    overflow: hidden; table-layout: fixed;\n'
+    '}\n'
+    '.stMarkdown th, [data-testid="stMarkdownContainer"] th {\n'
+    '    background: var(--surface3); font-weight: 700; text-align: left;\n'
+    '    border: 1px solid var(--border-strong); padding: 8px 12px;\n'
+    '}\n'
+    '.stMarkdown td, [data-testid="stMarkdownContainer"] td {\n'
+    '    border: 1px solid var(--border); padding: 8px 12px;\n'
+    '    overflow-wrap: anywhere; word-break: break-word;\n'
+    '}\n'
+    '.stMarkdown tr:nth-child(even) td, [data-testid="stMarkdownContainer"] tr:nth-child(even) td {\n'
+    '    background: var(--surface2);\n'
+    '}\n'
+    '/* Long unbroken strings (URLs, hashes) inside chat prose wrap\n'
+    '   instead of stretching the bubble. */\n'
+    '[data-testid="stChatMessage"] .stMarkdown { min-width: 0; overflow-wrap: anywhere; }\n'
+    '[data-testid="stChatMessage"] { min-width: 0; }\n'
+    '/* Code blocks - long lines scroll horizontally INSIDE the block;\n'
+    '   the block itself never stretches the chat bubble. */\n'
+    '[data-testid="stCodeBlock"] {\n'
+    '    border: 1px solid var(--border); border-radius: 14px; overflow: hidden;\n'
+    '    margin: 12px 0; background: #0a0913; max-width: 100%; min-width: 0;\n'
+    '}\n'
+    '[data-testid="stCodeBlock"] pre {\n'
+    '    background: #0a0913 !important; padding: 14px 16px !important;\n'
+    '    max-width: 100%; overflow-x: auto;\n'
+    '}\n'
+    '[data-testid="stCodeBlock"] code { font-size: 13px !important; line-height: 1.6; }\n'
+    '.stMarkdown pre {\n'
+    '    background: #0a0913; border: 1px solid var(--border); border-radius: 14px;\n'
+    '    padding: 14px 16px; overflow-x: auto; max-width: 100%;\n'
+    '}\n'
+    '.stMarkdown code { background: var(--accent-soft); border-radius: 6px; padding: 1px 6px; font-size: .88em; }\n'
+    '.stMarkdown pre code { background: transparent; padding: 0; font-size: 13px; }\n'
+)
+
 
 def _esc(value) -> str:
-    """Escape dynamic values before injecting them into unsafe HTML."""
     return _html.escape(str(value), quote=True)
 
 
 def human_size(num) -> str:
     try:
         num = int(num)
+        for unit in ("B", "KB", "MB", "GB"):
+            if num < 1024 or unit == "GB":
+                if unit == "B":
+                    return f"{num:.0f} {unit}"
+                return f"{num:.1f} {unit}"
+            num /= 1024
+        return f"{num:.1f} GB"
     except (TypeError, ValueError):
         return "0 B"
-    for unit in ("B", "KB", "MB", "GB"):
-        if num < 1024 or unit == "GB":
-            return f"{num:.0f} {unit}" if unit == "B" else f"{num:.1f} {unit}"
-        num /= 1024
-    return f"{num:.1f} GB"
 
 
 def time_ago(ts) -> str:
-    """Friendly relative time for an ISO-like timestamp."""
     try:
         import time as _time
         parsed = _time.strptime(str(ts)[:19], "%Y-%m-%d %H:%M:%S")
@@ -40,598 +86,59 @@ def time_ago(ts) -> str:
             return f"{int(diff // 60)}m ago"
         if diff < 86400:
             return f"{int(diff // 3600)}h ago"
-        if diff < 86400 * 7:
+        if diff < 604800:
             return f"{int(diff // 86400)}d ago"
         return str(ts)[:10]
     except (ValueError, TypeError):
         return str(ts)[:10]
 
 
-# ----------------------------------------------------------------------
-# Theme variables
-# ----------------------------------------------------------------------
-
-_DARK_VARS = """
-:root {
-    --bg: #08070d; --bg2: #0d0b16;
-    --surface: #131120; --surface2: #191626; --surface3: #211d33;
-    --border: rgba(196,181,253,.10); --border-strong: rgba(196,181,253,.22);
-    --text: #f4f2fb; --muted: #9d96b8;
-    --accent: #8b5cf6; --accent2: #a855f7; --accent3: #6366f1;
-    --accent-soft: rgba(139,92,246,.16);
-    --success: #34d399; --warn: #fbbf24; --danger: #fb7185;
-    --shadow: 0 14px 44px rgba(2,0,14,.55);
-    --shadow-soft: 0 6px 22px rgba(2,0,14,.38);
-    --grad: linear-gradient(135deg, #7c3aed 0%, #a855f7 55%, #c084fc 100%);
-    --glow: 0 0 0 1px rgba(168,85,247,.35), 0 8px 30px rgba(124,58,237,.35);
-}
-[data-testid="stAppViewContainer"] {
-    background:
-        radial-gradient(1100px 600px at 8% -12%, rgba(124,58,237,.20), transparent 60%),
-        radial-gradient(900px 560px at 108% 4%, rgba(168,85,247,.14), transparent 55%),
-        radial-gradient(800px 600px at 50% 118%, rgba(99,102,241,.08), transparent 60%),
-        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
-    background-attachment: fixed;
-    color: var(--text);
-}
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, rgba(14,12,24,.96), rgba(10,9,18,.96));
-    border-right: 1px solid var(--border);
-    backdrop-filter: blur(10px);
-}
-"""
-
-_LIGHT_VARS = """
-:root {
-    --bg: #f6f5fb; --bg2: #efedf8;
-    --surface: #ffffff; --surface2: #f5f3fb; --surface3: #edeaf6;
-    --border: rgba(76,29,149,.12); --border-strong: rgba(76,29,149,.22);
-    --text: #17122b; --muted: #6d6691;
-    --accent: #7c3aed; --accent2: #a855f7; --accent3: #6366f1;
-    --accent-soft: rgba(139,92,246,.12);
-    --success: #059669; --warn: #d97706; --danger: #e11d48;
-    --shadow: 0 14px 40px rgba(76,29,149,.12);
-    --shadow-soft: 0 6px 20px rgba(76,29,149,.08);
-    --grad: linear-gradient(135deg, #7c3aed 0%, #a855f7 55%, #c084fc 100%);
-    --glow: 0 0 0 1px rgba(168,85,247,.25), 0 8px 26px rgba(124,58,237,.18);
-}
-[data-testid="stAppViewContainer"] {
-    background:
-        radial-gradient(1100px 600px at 8% -12%, rgba(124,58,237,.12), transparent 60%),
-        radial-gradient(900px 560px at 108% 4%, rgba(168,85,247,.10), transparent 55%),
-        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
-    background-attachment: fixed;
-    color: var(--text);
-}
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, rgba(255,255,255,.97), rgba(248,246,253,.97));
-    border-right: 1px solid var(--border);
-}
-"""
-
-_BASE_CSS = """
-html, body, .stApp, p, li, div, label, span, h1, h2, h3, h4, h5, h6,
-input, textarea, button, select, [class*="css"] {
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-                 Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: var(--text);
-}
-h1, h2, h3, h4 { font-weight: 760; letter-spacing: -0.02em; }
-p, li { line-height: 1.65; }
-code, pre, [data-testid="stCodeBlock"] * {
-    font-family: "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
-}
-a { color: var(--accent2); text-decoration: none; }
-a:hover { text-decoration: underline; }
-
-#MainMenu, footer { visibility: hidden; height: 0; }
-[data-testid="stHeader"] { background: transparent; }
-[data-testid="stDecoration"] { display: none; }
-.block-container { padding-top: 1.7rem; padding-bottom: 5rem; max-width: 1240px; }
-[data-testid="stToolbar"] { right: 1rem; }
-/* Hide Streamlit's built-in Deploy / main-menu buttons (not used by this
-   app) while KEEPING the sidebar expand/collapse controls visible - they
-   also live inside stToolbar and must not be hidden. */
-[data-testid="stDeployButton"],
-[data-testid="stMainMenu"],
-[data-testid="stToolbar"] [data-testid="stPopoverButton"],
-[data-testid="stToolbar"] [data-testid="stMainMenu"] { display: none !important; }
-[data-testid="stToolbar"] [data-testid="stSidebarCollapseButton"],
-[data-testid="stToolbar"] [data-testid="stExpandSidebarButton"] { display: inline-flex !important; }
-
-::-webkit-scrollbar { width: 9px; height: 9px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-
-@keyframes ufFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@keyframes ufPulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
-@keyframes ufFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-
-.stButton > button, [data-testid="stFormSubmitButton"] > button {
-    background: var(--grad); color: #fff; font-weight: 650;
-    border: none; border-radius: 12px; padding: .58rem 1.1rem;
-    transition: all .18s ease; box-shadow: 0 4px 18px rgba(124,58,237,.30);
-}
-.stButton > button:hover:not(:disabled) {
-    transform: translateY(-2px); box-shadow: 0 10px 30px rgba(124,58,237,.45);
-    color: #fff;
-}
-.stButton > button:active:not(:disabled) { transform: translateY(0); }
-.stButton > button[kind="secondary"] {
-    background: var(--surface2); color: var(--text);
-    border: 1px solid var(--border-strong); box-shadow: none;
-}
-.stButton > button[kind="secondary"]:hover:not(:disabled) {
-    background: var(--surface3); color: var(--accent2);
-    border-color: var(--accent); box-shadow: var(--shadow-soft);
-}
-.stButton > button[kind="tertiary"] {
-    background: transparent; color: var(--muted);
-    border: 1px solid var(--border); box-shadow: none;
-}
-.stButton > button[kind="tertiary"]:hover:not(:disabled) {
-    color: var(--danger); border-color: var(--danger); box-shadow: none;
-}
-
-.qa-chip button {
-    background: var(--surface) !important; color: var(--text) !important;
-    border: 1px solid var(--border-strong) !important; border-radius: 14px !important;
-    padding: .7rem .5rem !important; font-size: .92rem !important;
-    box-shadow: var(--shadow-soft) !important; transition: all .18s ease !important;
-    white-space: normal !important; height: auto !important;
-}
-.qa-chip button:hover:not(:disabled) {
-    transform: translateY(-2px) !important;
-    border-color: var(--accent2) !important;
-    box-shadow: var(--glow) !important;
-    background: var(--surface2) !important;
-}
-
-[data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea,
-[data-testid="stNumberInput"] input, [data-testid="stDateInput"] input {
-    background: var(--surface2); border: 1px solid var(--border-strong);
-    border-radius: 12px; color: var(--text);
-}
-[data-testid="stTextInput"] input:focus, [data-testid="stTextArea"] textarea:focus {
-    border-color: var(--accent2); box-shadow: 0 0 0 3px var(--accent-soft);
-}
-[data-testid="stSelectbox"] [data-baseweb="select"] > div {
-    background: var(--surface2); border: 1px solid var(--border-strong);
-    border-radius: 12px; color: var(--text);
-}
-[data-testid="stSelectbox"] [data-baseweb="popover"] { background: var(--surface); border: 1px solid var(--border-strong); }
-[data-testid="stSlider"] [role="slider"] { background: var(--accent2); }
-[data-testid="stToggle"] [role="switch"] { background: var(--surface3); }
-[data-testid="stToggle"] [role="switch"][aria-checked="true"] { background: var(--grad); }
-
-[data-testid="stSegmentedControl"] [data-baseweb="tab-list"] {
-    background: var(--surface2); border: 1px solid var(--border-strong);
-    border-radius: 12px; padding: 4px; gap: 4px;
-}
-[data-testid="stSegmentedControl"] [data-baseweb="tab"] {
-    border-radius: 9px !important; color: var(--muted) !important;
-    background: transparent !important; font-weight: 600 !important;
-}
-[data-testid="stSegmentedControl"] [aria-selected="true"] {
-    background: var(--grad) !important; color: #fff !important;
-    box-shadow: 0 3px 12px rgba(124,58,237,.35);
-}
-
-[data-testid="stFileUploader"] {
-    background: var(--surface); border: 1.5px dashed var(--border-strong);
-    border-radius: 18px; transition: all .2s ease;
-}
-[data-testid="stFileUploader"]:hover, [data-testid="stFileUploader"]:focus-within {
-    border-color: var(--accent2); box-shadow: var(--glow);
-    background: var(--surface2);
-}
-[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] { padding: 1.4rem; }
-[data-testid="stFileUploader"] button {
-    background: var(--surface3); color: var(--text); border: 1px solid var(--border-strong); border-radius: 10px;
-}
-[data-testid="stFileUploader"] [data-testid="stFileUploaderFile"] { background: var(--surface2); border-radius: 10px; }
-
-[data-testid="stTabs"] [data-baseweb="tab-list"] { gap: 6px; }
-[data-testid="stTabs"] [data-baseweb="tab"] {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 11px; padding: 8px 18px; font-weight: 600;
-    color: var(--muted); transition: all .15s ease;
-}
-[data-testid="stTabs"] [data-baseweb="tab"]:hover { color: var(--accent2); border-color: var(--border-strong); }
-[data-testid="stTabs"] [aria-selected="true"] {
-    background: var(--grad) !important; color: #fff !important; border-color: transparent !important;
-}
-[data-testid="stExpander"] {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 15px; overflow: hidden;
-}
-[data-testid="stExpander"] summary { font-weight: 650; }
-[data-testid="stAlert"] { border-radius: 13px; border: 1px solid var(--border); background: var(--surface); }
-[data-testid="stDataFrame"] { border: 1px solid var(--border); border-radius: 15px; overflow: hidden; }
-[data-testid="stDataFrame"] table { background: var(--surface); color: var(--text); }
-[data-testid="stProgress"] [role="progressbar"] > div > div > div > div {
-    background: var(--grad);
-}
-
-/* ---------- Chat messages ---------- */
-[data-testid="stChatMessage"] {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 16px 18px;
-    margin: 12px 0;
-    box-shadow: var(--shadow-soft);
-    animation: ufFadeUp .3s ease;
-}
-[data-testid="stChatMessage"]:hover { border-color: var(--border-strong); }
-[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
-    background: linear-gradient(135deg, rgba(124,58,237,.20), rgba(168,85,247,.14));
-    border-color: rgba(168,85,247,.30);
-    margin-left: 12%;
-    border-radius: 18px 18px 6px 18px;
-}
-[data-testid="stChatMessageAvatarUser"],
-[data-testid="stChatMessageAvatarAssistant"] {
-    background: var(--grad);
-    color: #fff !important;
-    font-weight: 700;
-    box-shadow: 0 4px 12px rgba(124,58,237,.40);
-    border: 2px solid rgba(255,255,255,.14);
-}
-[data-testid="stChatMessageAvatarUser"] { border-radius: 14px 14px 14px 4px; }
-
-[data-testid="stChatInput"] {
-    background: var(--surface);
-    border: 1.5px solid var(--border-strong);
-    border-radius: 18px;
-    padding: .4rem .6rem;
-    box-shadow: var(--shadow-soft);
-    transition: all .18s ease;
-}
-[data-testid="stChatInput"]:focus-within {
-    border-color: var(--accent2);
-    box-shadow: var(--glow);
-}
-[data-testid="stChatInput"] textarea { background: transparent !important; color: var(--text) !important; font-size: 1rem !important; }
-[data-testid="stChatInput"] button {
-    background: var(--grad) !important; color: #fff !important;
-    border-radius: 12px !important; box-shadow: 0 4px 14px rgba(124,58,237,.35) !important;
-}
-
-[data-testid="stSidebar"] [role="radiogroup"] { gap: 3px; display: flex; flex-direction: column; }
-[data-testid="stSidebar"] [role="radiogroup"] label {
-    display: flex; align-items: center; gap: 11px;
-    padding: 10px 14px; border-radius: 12px; cursor: pointer;
-    border: 1px solid transparent; transition: all .16s ease;
-    position: relative;
-}
-[data-testid="stSidebar"] [role="radiogroup"] label p { color: var(--muted); font-weight: 550; font-size: .95rem; }
-[data-testid="stSidebar"] [role="radiogroup"] label:hover { background: var(--accent-soft); }
-[data-testid="stSidebar"] [role="radiogroup"] label:hover p { color: var(--text); }
-[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
-    background: linear-gradient(135deg, rgba(124,58,237,.28), rgba(168,85,247,.16));
-    border-color: rgba(168,85,247,.45);
-    box-shadow: inset 3px 0 0 var(--accent2);
-}
-[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) p { color: var(--text); font-weight: 700; }
-[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) span,
-[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) [data-testid="stIconMaterial"] {
-    color: var(--accent2) !important;
-}
-[data-testid="stSidebar"] [role="radiogroup"] input { display: none; }
-
-[data-testid="stSidebarCollapsedControl"], [data-testid="stSidebarCollapseButton"] {
-    color: var(--accent2) !important; background: var(--accent-soft) !important;
-    border: 1px solid rgba(168,85,247,.4) !important; border-radius: 9px !important;
-}
-[data-testid="stSidebarCollapsedControl"]:hover, [data-testid="stSidebarCollapseButton"]:hover {
-    background: var(--grad) !important; color: #fff !important;
-    box-shadow: 0 4px 14px rgba(124,58,237,.4) !important;
-}
-[data-testid="stSidebarCollapsedControl"] svg, [data-testid="stSidebarCollapseButton"] svg { color: var(--accent2) !important; fill: var(--accent2) !important; }
-[data-testid="stSidebarCollapsedControl"]:hover svg, [data-testid="stSidebarCollapseButton"]:hover svg { color: #fff !important; fill: #fff !important; }
-
-/* ---------- Custom components ---------- */
-.grad-text {
-    background: var(--grad);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-}
-.side-section {
-    font-size: 10.5px; font-weight: 700; letter-spacing: .12em;
-    text-transform: uppercase; color: var(--muted);
-    margin: 22px 6px 8px;
-}
-.side-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 13px; }
-.side-ico { width: 22px; text-align: center; font-size: 13px; opacity: .9; }
-.side-label { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.side-val { color: var(--text); font-weight: 650; font-size: 12.5px; }
-
-.side-brand { display: flex; align-items: center; gap: 12px; padding: 6px 4px 4px; }
-.side-logo {
-    width: 42px; height: 42px; border-radius: 13px; flex-shrink: 0;
-    background: var(--grad); display: flex; align-items: center; justify-content: center;
-    font-size: 20px; box-shadow: 0 6px 20px rgba(124,58,237,.45);
-    animation: ufFloat 4s ease-in-out infinite;
-}
-.side-name { font-size: 15px; font-weight: 780; letter-spacing: -.01em; line-height: 1.2; }
-.side-tag { font-size: 11px; color: var(--muted); }
-
-.user-chip {
-    display: flex; align-items: center; gap: 10px; margin-top: 14px;
-    padding: 10px 12px; border: 1px solid var(--border);
-    border-radius: 14px; background: var(--surface);
-    box-shadow: var(--shadow-soft);
-}
-.avatar {
-    width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0;
-    background: var(--grad); color: #fff; font-weight: 700; font-size: 14px;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 12px rgba(124,58,237,.35);
-}
-.user-name { font-size: 13.5px; font-weight: 700; line-height: 1.2; }
-.user-role { font-size: 11px; color: var(--muted); }
-
-.page-head { margin-bottom: 24px; animation: ufFadeUp .35s ease; }
-.page-title { display: flex; align-items: center; gap: 13px; font-size: 26px; font-weight: 800; letter-spacing: -.025em; }
-.page-icon {
-    width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
-    background: var(--grad); display: flex; align-items: center; justify-content: center;
-    font-size: 22px; box-shadow: 0 8px 24px rgba(124,58,237,.42);
-}
-.page-sub { color: var(--muted); margin-top: 7px; font-size: 14px; }
-
-.fx-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 18px; padding: 20px; transition: all .2s ease;
-    animation: ufFadeUp .3s ease;
-}
-.fx-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow); }
-.fx-card h4 { margin: 0 0 4px; font-size: 15px; font-weight: 720; }
-.fx-card .fx-sub { color: var(--muted); font-size: 12.5px; margin-bottom: 12px; }
-
-.fx-metric {
-    background: linear-gradient(180deg, var(--surface), var(--surface2));
-    border: 1px solid var(--border); border-radius: 18px;
-    padding: 18px 20px; transition: all .2s ease; height: 100%;
-    position: relative; overflow: hidden;
-}
-.fx-metric::after {
-    content: ""; position: absolute; inset: auto -30% -60% auto; width: 120%; height: 80%;
-    background: radial-gradient(140px 80px at 85% 100%, rgba(168,85,247,.18), transparent 70%);
-    pointer-events: none;
-}
-.fx-metric:hover { transform: translateY(-3px); border-color: var(--border-strong); box-shadow: var(--shadow); }
-.fx-metric-row { display: flex; align-items: center; gap: 10px; }
-.fx-icon {
-    width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 17px;
-    background: var(--accent-soft); border: 1px solid var(--border);
-}
-.fx-label { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
-.fx-value { margin-top: 12px; font-size: 27px; font-weight: 780; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.fx-value small { font-size: 13px; color: var(--muted); font-weight: 500; }
-.fx-hint { color: var(--muted); font-size: 11.5px; margin-top: 4px; }
-
-.pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 650;
-    white-space: nowrap;
-}
-.pill.ok { background: rgba(52,211,153,.14); color: var(--success); border: 1px solid rgba(52,211,153,.35); }
-.pill.err { background: rgba(251,113,133,.14); color: var(--danger); border: 1px solid rgba(251,113,133,.35); }
-.pill.warn { background: rgba(251,191,36,.14); color: var(--warn); border: 1px solid rgba(251,191,36,.35); }
-.pill.info { background: var(--accent-soft); color: var(--accent2); border: 1px solid rgba(168,85,247,.35); }
-.pill.dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-
-.meta-bar {
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border);
-}
-.meta-chip {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: 11.5px; font-weight: 600; color: var(--muted);
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 999px; padding: 4px 11px;
-}
-.meta-chip b { color: var(--text); font-weight: 650; }
-.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); animation: ufPulse 1.2s infinite; }
-
-.typing-dots { display: inline-flex; gap: 5px; align-items: center; }
-.typing-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--accent2); animation: ufPulse 1.1s infinite; }
-.typing-dots span:nth-child(2) { animation-delay: .18s; }
-.typing-dots span:nth-child(3) { animation-delay: .36s; }
-
-.uf-copy {
-    background: var(--surface2); color: var(--muted);
-    border: 1px solid var(--border-strong); border-radius: 9px;
-    font-size: 12px; font-weight: 600; padding: 4px 12px; cursor: pointer;
-    transition: all .15s ease; font-family: inherit;
-}
-.uf-copy:hover { color: var(--accent2); border-color: var(--accent2); box-shadow: var(--glow); }
-
-.workflow-banner {
-    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-    margin-bottom: 12px; padding: 10px 14px;
-    background: linear-gradient(135deg, rgba(124,58,237,.18), rgba(168,85,247,.10));
-    border: 1px solid rgba(168,85,247,.30); border-radius: 14px;
-}
-.wf-steps { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.wf-step {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-size: 11.5px; font-weight: 650; padding: 4px 10px; border-radius: 999px;
-    background: var(--surface2); color: var(--muted); border: 1px solid var(--border);
-}
-.wf-step.done { background: rgba(52,211,153,.12); color: var(--success); border-color: rgba(52,211,153,.35); }
-
-.qa-prompt {
-    margin: 14px 0 6px; padding: 13px 16px;
-    background: linear-gradient(135deg, rgba(124,58,237,.18), rgba(168,85,247,.10));
-    border: 1px solid rgba(168,85,247,.35); border-radius: 14px;
-    font-size: 14.5px; font-weight: 600; color: var(--text);
-    animation: ufFadeUp .25s ease;
-}
-
-.empty-hero { text-align: center; padding: 3.2rem 1.5rem 2rem; animation: ufFadeUp .4s ease; }
-.empty-hero .eh-icon {
-    width: 72px; height: 72px; margin: 0 auto 1.1rem; border-radius: 22px;
-    background: var(--grad); display: flex; align-items: center; justify-content: center;
-    font-size: 34px; box-shadow: 0 14px 40px rgba(124,58,237,.5);
-    animation: ufFloat 3.5s ease-in-out infinite;
-}
-.empty-hero h2 { font-size: 1.55rem; font-weight: 800; margin: 0 0 .4rem; letter-spacing: -.02em; }
-.empty-hero .eh-sub { color: var(--muted); font-size: .95rem; max-width: 520px; margin: 0 auto; }
-
-.file-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 16px; padding: 14px; transition: all .2s ease;
-    height: 100%; position: relative; overflow: hidden;
-}
-.file-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow); transform: translateY(-2px); }
-.file-card .fc-icon {
-    width: 44px; height: 44px; border-radius: 13px; font-size: 20px;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--accent-soft); border: 1px solid var(--border); margin-bottom: 10px;
-}
-.file-card .fc-name { font-weight: 700; font-size: 13.5px; word-break: break-all; line-height: 1.3; }
-.file-card .fc-meta { color: var(--muted); font-size: 11.5px; margin-top: 4px; }
-
-.upload-tip { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
-.preview-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-
-.kv-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px dashed var(--border); font-size: 13px; }
-.kv-row:last-child { border-bottom: none; }
-.kv-row .k { color: var(--muted); }
-.kv-row .v { font-weight: 650; }
-
-.legal-body p { margin: 0 0 12px; font-size: .95rem; }
-.legal-body h3 { margin: 18px 0 6px; font-size: 1.02rem; }
-
-.auth-brand { padding: 10px 10px 10px 0; max-width: 560px; }
-.auth-brand .auth-logo {
-    width: 60px; height: 60px; border-radius: 18px;
-    background: var(--grad); display: flex; align-items: center; justify-content: center;
-    font-size: 29px; box-shadow: 0 12px 34px rgba(124,58,237,.5); margin-bottom: 24px;
-    animation: ufFloat 4s ease-in-out infinite;
-}
-.auth-brand h1 { font-size: 2.5rem; font-weight: 820; letter-spacing: -.03em; line-height: 1.1; margin: 0 0 16px; }
-.auth-brand .auth-desc { color: var(--muted); font-size: 1rem; margin-bottom: 26px; }
-.auth-feat { display: flex; gap: 13px; padding: 12px 0; align-items: flex-start; }
-.auth-feat .fi {
-    width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
-    background: var(--accent-soft); border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center; font-size: 16px;
-}
-.auth-feat .ft { font-size: 14px; font-weight: 650; }
-.auth-feat .fd { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-.auth-stats { display: flex; gap: 26px; margin-top: 26px; }
-.auth-stats .as-n { font-size: 22px; font-weight: 800; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.auth-stats .as-l { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
-
-.auth-card-head { margin-bottom: 16px; }
-.auth-card-head h2 { font-size: 21px; font-weight: 760; margin: 0 0 3px; }
-.auth-card-head p { color: var(--muted); font-size: 13.5px; margin: 0; }
-[data-testid="stForm"] {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 20px; padding: 26px 26px 10px; box-shadow: var(--shadow);
-}
-.auth-foot { text-align: center; color: var(--muted); font-size: 12px; margin-top: 18px; }
-.auth-divider {
-    display: flex; align-items: center; gap: 12px;
-    color: var(--muted); font-size: 12.5px; margin: 20px 0 4px;
-}
-.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border-strong); }
-
-[data-testid="stSidebar"] .auth-foot { text-align: left; margin-top: 14px; }
-"""
-
-
 def theme_css(active_theme: str = "dark", font_size: str = "md") -> str:
-    """Full stylesheet for the app. font_size: sm | md | lg | xl."""
     sizes = {"sm": "14px", "md": "15.5px", "lg": "17px", "xl": "18.5px"}
     root_fs = sizes.get(font_size, "15.5px")
-    vars_block = _DARK_VARS if active_theme != "light" else _LIGHT_VARS
     return (
-        "<style>"
-        f"html, body, .stApp {{ font-size: {root_fs}; }}"
-        f"{vars_block}{_BASE_CSS}"
+        f"<style>html, body, .stApp {{ font-size: {root_fs}; }}"
+        f"{_DARK_VARS}"
+        f"{_BASE_CSS}"
+        f"{_OVERFLOW_CSS}"
         "</style>"
     )
 
 
-def copy_js() -> str:
-    """Global script that powers the 'Copy' buttons on chat responses.
-
-    The payload travels as a base64 token (single safe attribute value), so
-    multi-line code with quotes never breaks the button's HTML.
-    """
-    return """
-    <script>
-    function ufB64ToText(b64) {
-        var bin = atob(b64);
-        var bytes = new Uint8Array(bin.length);
-        for (var i = 0; i < bin.length; i++) { bytes[i] = bin.charCodeAt(i); }
-        return new TextDecoder('utf-8').decode(bytes);
-    }
-    function ufCopy(b64, btn) {
-        var txt;
-        try { txt = ufB64ToText(b64); } catch(e) { txt = b64; }
-        function done() {
-            if (btn) { btn.textContent = '\u2713 Copied';
-                setTimeout(function(){ btn.textContent = 'Copy'; }, 1600); }
-        }
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(txt).then(done, function(){
-                try { window.prompt('Copy to clipboard:', txt); } catch(e) {}
-            });
-        } else {
-            var ta = document.createElement('textarea');
-            ta.value = txt; document.body.appendChild(ta); ta.select();
-            try { document.execCommand('copy'); } catch(e) {}
-            document.body.removeChild(ta); done();
-        }
-    }
-    </script>
-    """
-
-
-# ----------------------------------------------------------------------
-# Component builders
-# ----------------------------------------------------------------------
-
 def page_header(icon: str, title: str, subtitle: str) -> str:
     return (
-        '<div class="page-head">'
-        f'<div class="page-title"><span class="page-icon">{icon}</span>{_esc(title)}</div>'
-        f'<div class="page-sub">{_esc(subtitle)}</div>'
-        "</div>"
+        '<div class="page-head"><div class="page-title">'
+        f'<span class="page-icon">{icon}</span>{_esc(title)}'
+        '</div><div class="page-sub">'
+        f'{_esc(subtitle)}</div></div>'
     )
 
 
-def metric_card(label: str, value, icon: str, hint: str = "") -> str:
+def metric_card(label, value, icon, hint="") -> str:
     hint_html = f'<div class="fx-hint">{_esc(hint)}</div>' if hint else ""
     return (
-        '<div class="fx-metric">'
-        '<div class="fx-metric-row">'
+        '<div class="fx-metric"><div class="fx-metric-row">'
         f'<span class="fx-icon">{icon}</span>'
-        f'<span class="fx-label">{_esc(label)}</span>'
-        "</div>"
+        f'<span class="fx-label">{_esc(label)}</span></div>'
         f'<div class="fx-value">{_esc(value)}</div>'
-        f"{hint_html}"
-        "</div>"
+        f"{hint_html}</div>"
     )
 
 
 def pill(kind: str, text: str, dot: bool = False) -> str:
-    cls = kind if kind in {"ok", "err", "warn", "info"} else "info"
-    return f'<span class="pill {cls}{" dot" if dot else ""}">{_esc(text)}</span>'
+    cls = kind if kind in {"info", "err", "warn", "ok"} else "info"
+    return (
+        f'<span class="pill {cls}{" dot" if dot else ""}">'
+        f"{_esc(text)}</span>"
+    )
 
 
 def side_row(icon: str, label: str, value: str) -> str:
     return (
-        f'<div class="side-row"><span class="side-ico">{icon}</span>'
-        f'<span class="side-label">{_esc(label)}</span>'
-        f'<span class="side-val">{_esc(value)}</span></div>'
+        '<div class="side-row"><span class="side-ico">'
+        f'{icon}</span><span class="side-label">'
+        f'{_esc(label)}</span><span class="side-val">'
+        f'{_esc(value)}</span></div>'
     )
 
 
@@ -641,10 +148,10 @@ def side_section(title: str) -> str:
 
 def brand_html(name: str = "AI Coding Assistant", tagline: str = "Your AI engineering team") -> str:
     return (
-        '<div class="side-brand">'
-        '<div class="side-logo">&#9889;</div>'
-        f'<div><div class="side-name">{_esc(name)}</div><div class="side-tag">{_esc(tagline)}</div></div>'
-        "</div>"
+        '<div class="side-brand"><div class="side-logo">&#9889;</div>'
+        '<div><div class="side-name">'
+        f'{_esc(name)}</div><div class="side-tag">'
+        f'{_esc(tagline)}</div></div></div>'
     )
 
 
@@ -653,54 +160,56 @@ def user_chip(username: str, role: str) -> str:
     role = _esc(role)
     initial = (username or "?").strip()[0].upper()
     return (
-        '<div class="user-chip">'
-        f'<div class="avatar">{initial}</div>'
-        f'<div><div class="user-name">{username}</div><div class="user-role">{role}</div></div>'
-        f'{pill("info", role)}'
-        "</div>"
+        '<div class="user-chip"><div class="avatar">'
+        f'{initial}</div><div><div class="user-name">'
+        f'{username}</div><div class="user-role">'
+        f'{role}</div></div>{pill("info", role)}</div>'
     )
 
 
 def empty_state(icon: str, title: str, subtitle: str) -> str:
     return (
-        '<div class="empty-hero">'
-        f'<div class="eh-icon">{icon}</div>'
-        f"<h2>{_esc(title)}</h2>"
-        f'<div class="eh-sub">{_esc(subtitle)}</div>'
-        "</div>"
+        '<div class="empty-hero"><div class="eh-icon">'
+        f'{icon}</div><h2>'
+        f'{_esc(title)}</h2><div class="eh-sub">'
+        f'{_esc(subtitle)}</div></div>'
     )
-
-
-def meta_bar(chips) -> str:
-    """chips: list of (icon, label, bold) tuples rendered as meta chips."""
-    parts = []
-    for icon, label, is_bold in chips:
-        if is_bold:
-            parts.append(f'<span class="meta-chip">{icon} <b>{label}</b></span>')
-        else:
-            parts.append(f'<span class="meta-chip">{icon} {label}</span>')
-    return f'<div class="meta-bar">{"".join(parts)}</div>'
 
 
 def workflow_banner(stages: list, done: int) -> str:
     step_html = []
     for i, name in enumerate(stages):
         cls = "wf-step done" if i < done else "wf-step"
-        check = "&#10003;" if i < done else f"{i + 1}"
+        check = "&#10003;" if i < done else str(i + 1)
         step_html.append(f'<span class="{cls}">{check} {_esc(name)}</span>')
     return (
         '<div class="workflow-banner">'
-        f'{pill("ok", "&#10003; Workflow completed", dot=True)}'
-        f'<div class="wf-steps">{"".join(step_html)}</div>'
-        "</div>"
+        f"{pill('ok', '&#10003; Workflow completed', dot=True)}"
+        f'<div class="wf-steps">{"".join(step_html)}</div></div>'
     )
 
 
 def copy_button(text: str) -> str:
-    """Copy button that carries its payload as base64 (quote/newline safe)."""
     import base64
     token = base64.b64encode(str(text).encode("utf-8")).decode("ascii")
+    # No inline onclick: Streamlit's markdown renderer converts HTML event
+    # attributes into React props and rejects string handlers (React error
+    # #231), so the handler never reaches the DOM. The bridge script
+    # (copy_js) listens on the document instead and acts on .uf-copy clicks.
     return (
-        "<button class=\"uf-copy\" onclick=\"ufCopy(this.getAttribute('data-b64'), this)\" "
-        f"data-b64=\"{token}\">Copy</button>"
+        '<button class="uf-copy" '
+        f'data-b64="{token}">Copy</button>'
     )
+
+
+
+def copy_js() -> str:
+    # Must be injected with st.html(..., unsafe_allow_javascript=True):
+    # <script> tags inside st.markdown are inert, and inline onclick is
+    # stripped by the markdown renderer, so the copy buttons would be dead.
+    return "\n    <script>\n    function ufB64ToText(b64) {\n        var bin = atob(b64);\n        var bytes = new Uint8Array(bin.length);\n        for (var i = 0; i < bin.length; i++) { bytes[i] = bin.charCodeAt(i); }\n        return new TextDecoder('utf-8').decode(bytes);\n    }\n    function ufCopy(b64, btn) {\n        var txt;\n        try { txt = ufB64ToText(b64); } catch(e) { txt = b64; }\n        function done() {\n            if (btn) { btn.textContent = '✓ Copied';\n                setTimeout(function(){ btn.textContent = 'Copy'; }, 1600); }\n        }\n        if (navigator.clipboard && window.isSecureContext) {\n            navigator.clipboard.writeText(txt).then(done, function(){\n                try { window.prompt('Copy to clipboard:', txt); } catch(e) {}\n            });\n        } else {\n            var ta = document.createElement('textarea');\n            ta.value = txt; document.body.appendChild(ta); ta.select();\n            try { document.execCommand('copy'); } catch(e) {}\n            document.body.removeChild(ta); done();\n        }\n    }\n    // Guard: st.html re-executes this script on every rerun, so attach the\n    // delegated listener only once (duplicates would copy N times per click).\n    if (!window.__ufCopyBound) {\n        window.__ufCopyBound = true;\n        document.addEventListener('click', function (e) {\n            var btn = e.target && e.target.closest ? e.target.closest('.uf-copy') : null;\n            if (!btn) return;\n            ufCopy(btn.getAttribute('data-b64'), btn);\n        });\n    }\n    </script>\n    "
+
+
+
+def auth_css() -> str:
+    return '\n<style>\n/* Center a narrow, tall column with breathing room (vertically centered). */\n.block-container {\n    max-width: 520px !important;\n    padding-top: 4.5vh !important;\n    padding-bottom: 2rem !important;\n}\n\n/* Ambient glow blobs behind the card - soft, not distracting. */\n[data-testid="stAppViewContainer"]::before {\n    content: ""; position: fixed; z-index: 0; pointer-events: none;\n    width: 560px; height: 560px; left: -180px; top: -180px;\n    background: radial-gradient(circle, rgba(139,92,246,.22), transparent 65%);\n    filter: blur(70px);\n}\n[data-testid="stAppViewContainer"]::after {\n    content: ""; position: fixed; z-index: 0; pointer-events: none;\n    width: 480px; height: 480px; right: -160px; bottom: -160px;\n    background: radial-gradient(circle, rgba(168,85,247,.16), transparent 65%);\n    filter: blur(70px);\n}\n.block-container { position: relative; z-index: 1; }\n\n/* Animations */\n@keyframes authFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }\n@keyframes authSpin { to { transform: rotate(360deg); } }\n\n/* ---------- Hero (logo + name + subtitle) ---------- */\n.auth-hero { text-align: center; margin: 0 0 1.3rem; animation: authFadeUp .45s ease both; }\n.auth-hero-logo {\n    width: 64px; height: 64px; margin: 0 auto 14px; border-radius: 20px;\n    background: var(--grad); display: flex; align-items: center; justify-content: center;\n    font-size: 30px; box-shadow: 0 14px 40px rgba(124,58,237,.5);\n    animation: ufFloat 4s ease-in-out infinite;\n}\n.auth-hero-name { font-size: 1.65rem; font-weight: 820; letter-spacing: -.025em; }\n.auth-hero-sub { color: var(--muted); font-size: .92rem; margin-top: 6px; }\n\n/* ---------- Auth card (Streamlit bordered container) ---------- */\n/* Streamlit >= 1.58 renders st.container(border=True) as a stVerticalBlock\n   with data-test-scroll-behavior="normal"; scope the card to the one that\n   wraps the login/signup form (unique on this page). */\n[data-testid="stVerticalBlock"][data-test-scroll-behavior="normal"]:has([data-testid="stForm"]) {\n    background: linear-gradient(180deg, rgba(26,22,44,.82), rgba(16,14,28,.86)) !important;\n    border: 1px solid rgba(196,181,253,.14) !important;\n    border-radius: 24px !important;\n    padding: 2rem 1.9rem 1.7rem !important;\n    box-shadow: 0 26px 80px rgba(2,0,14,.6), 0 0 0 1px rgba(168,85,247,.05),\n                inset 0 1px 0 rgba(255,255,255,.05) !important;\n    backdrop-filter: blur(18px) !important;\n    animation: authFadeUp .5s .05s ease both !important;\n}\n\n/* The email form inside the card loses its own box (the card is the box). */\n[data-testid="stForm"] {\n    background: transparent !important; border: none !important;\n    box-shadow: none !important; border-radius: 0 !important; padding: 0 !important;\n}\n\n/* Card heading */\n.auth-card-head { text-align: center; margin: 0 0 1.5rem; }\n.auth-card-head h2 { font-size: 1.35rem; font-weight: 800; margin: 0 0 4px; letter-spacing: -.02em; }\n.auth-card-head p { color: var(--muted); font-size: .88rem; margin: 0; }\n\n/* ---------- Floating-label inputs ---------- */\n[data-testid="stTextInput"] { position: relative; margin-bottom: .15rem; }\n[data-testid="stTextInput"] label {\n    position: absolute; left: 15px; top: 50%; transform: translateY(-50%);\n    margin: 0; padding: 0 5px; font-size: .93rem; font-weight: 500;\n    color: var(--muted); line-height: 1; border-radius: 5px;\n    pointer-events: none; z-index: 3; transition: all .16s ease;\n    background: transparent;\n}\n[data-testid="stTextInput"]:focus-within label,\n[data-testid="stTextInput"]:has(input:not(:placeholder-shown)) label {\n    top: 0; transform: translateY(-50%);\n    font-size: .7rem; font-weight: 700; color: var(--accent2);\n    background: var(--surface);\n}\n[data-testid="stTextInput"] input {\n    height: 54px !important; padding: 20px 14px 4px !important;\n    border-radius: 13px !important; font-size: .95rem !important;\n    background: var(--surface2) !important;\n    border: 1px solid var(--border-strong) !important;\n    transition: border-color .16s ease, box-shadow .16s ease !important;\n}\n[data-testid="stTextInput"] input::placeholder { color: transparent !important; }\n[data-testid="stTextInput"]:focus-within input {\n    border-color: var(--accent2) !important;\n    box-shadow: 0 0 0 3px var(--accent-soft) !important;\n}\n\n/* ---------- Buttons ---------- */\n[data-testid="stFormSubmitButton"] > button, .stButton > button {\n    height: 50px !important; border-radius: 13px !important;\n    font-size: .95rem !important; font-weight: 650 !important;\n    transition: all .18s ease !important;\n}\n[data-testid="stFormSubmitButton"] > button:disabled, .stButton > button:disabled {\n    opacity: .55; cursor: not-allowed !important;\n    transform: none !important; box-shadow: none !important;\n}\n.stButton > button[kind="secondary"] {\n    background: var(--surface2) !important;\n    border: 1px solid var(--border-strong) !important;\n    color: var(--text) !important;\n}\n.stButton > button[kind="secondary"]:hover:not(:disabled) {\n    background: var(--surface3) !important; border-color: var(--accent) !important;\n    transform: translateY(-1px) !important; color: var(--text) !important;\n}\n.stButton > button[kind="tertiary"] {\n    background: transparent !important; border: none !important;\n    box-shadow: none !important; color: var(--muted) !important;\n    padding: 4px 8px !important; font-size: .82rem !important;\n    height: auto !important;\n}\n.stButton > button[kind="tertiary"]:hover:not(:disabled) {\n    color: var(--accent2) !important; transform: none !important;\n}\n\n/* Google button - the real Streamlit button (widget key btn_google)\n   styled as a white pill with the multicolor G. Styled directly via the\n   st-key-<key> class instead of a JS overlay: Streamlit strips inline\n   event handlers and scripts from st.markdown, so a fake button over\n   the real one renders but is unclickable. */\n[data-testid="stElementContainer"].st-key-btn_google button,\n[data-testid="stElementContainer"].st-key-btn_google a {\n    background: #ffffff !important; color: #000000 !important;\n    border: 1px solid rgba(255,255,255,.18) !important;\n    border-radius: 13px !important; height: 50px !important;\n    font-size: .95rem !important; font-weight: 600 !important;\n    display: inline-flex !important; align-items: center !important;\n    justify-content: center !important; gap: 11px !important;\n    box-shadow: 0 6px 20px rgba(2,0,14,.35) !important;\n    transition: all .18s ease !important;\n\ntext-decoration: none !important;}\n/* Streamlit renders button labels inside a <p> whose color comes from\n   the theme base CSS (near-white) - the black button color above does\n   not cascade into it, so the label must be forced dark as well or the\n   white button becomes unreadable white-on-white. */\n[data-testid="stElementContainer"].st-key-btn_google button p,\n[data-testid="stElementContainer"].st-key-btn_google button p *,\n[data-testid="stElementContainer"].st-key-btn_google a p,\n[data-testid="stElementContainer"].st-key-btn_google a p * {\n    color: #000000 !important; font-weight: 600 !important;\n}\n[data-testid="stElementContainer"].st-key-btn_google button::before,\n[data-testid="stElementContainer"].st-key-btn_google a::before {\n    content: ""; width: 20px; height: 20px; flex-shrink: 0;\n    background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyMCcgaGVpZ2h0PScyMCcgdmlld0JveD0nMCAwIDQ4IDQ4Jz48cGF0aCBmaWxsPScjRUE0MzM1JyBkPSdNMjQgOS41YzMuNTQgMCA2LjcxIDEuMjIgOS4yMSAzLjZsNi44NS02Ljg1QzM1LjkgMi4zOCAzMC40NyAwIDI0IDAgMTQuNjIgMCA2LjUxIDUuMzggMi41NiAxMy4yMmw3Ljk4IDYuMTlDMTIuNDMgMTMuNzIgMTcuNzQgOS41IDI0IDkuNXonLz48cGF0aCBmaWxsPScjNDI4NUY0JyBkPSdNNDYuOTggMjQuNTVjMC0xLjU3LS4xNS0zLjA5LS4zOC00LjU1SDI0djkuMDJoMTIuOTRjLS41OCAyLjk2LTIuMjYgNS40OC00Ljc4IDcuMThsNy43MyA2YzQuNTEtNC4xOCA3LjA5LTEwLjM2IDcuMDktMTcuNjV6Jy8+PHBhdGggZmlsbD0nI0ZCQkMwNScgZD0nTTEwLjUzIDI4LjU5Yy0uNDgtMS40NS0uNzYtMi45OS0uNzYtNC41OXMuMjctMy4xNC43Ni00LjU5bC03Ljk4LTYuMTlDLjkyIDE2LjQ2IDAgMjAuMTIgMCAyNGMwIDMuODguOTIgNy41NCAyLjU2IDEwLjc4bDcuOTctNi4xOXonLz48cGF0aCBmaWxsPScjMzRBODUzJyBkPSdNMjQgNDhjNi40OCAwIDExLjkzLTIuMTMgMTUuODktNS44MWwtNy43My02Yy0yLjE1IDEuNDUtNC45MiAyLjMtOC4xNiAyLjMtNi4yNiAwLTExLjU3LTQuMjItMTMuNDctOS45MWwtNy45OCA2LjE5QzYuNTEgNDIuNjIgMTQuNjIgNDggMjQgNDh6Jy8+PC9zdmc+") center / contain no-repeat;\n}\n[data-testid="stElementContainer"].st-key-btn_google button:hover:not(:disabled),\n[data-testid="stElementContainer"].st-key-btn_google a:hover:not([aria-disabled="true"]) {\n    transform: translateY(-1px) !important;\n    box-shadow: 0 10px 28px rgba(2,0,14,.45) !important;\n}\n[data-testid="stElementContainer"].st-key-btn_google button:active:not(:disabled),\n[data-testid="stElementContainer"].st-key-btn_google a:active:not([aria-disabled="true"]) {\n    transform: translateY(0) !important;\n}\n.gbtn-hint {\n    text-align: center; color: var(--muted); font-size: .74rem;\n    margin-top: 6px;\n}\n\n/* Divider (OR) */\n.auth-divider {\n    display: flex; align-items: center; gap: 12px;\n    color: var(--muted); font-size: 12px; margin: 1.2rem 0;\n}\n.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border-strong); }\n\n/* Row: remember me + forgot password */\n.auth-options {\n    display: flex; align-items: center; justify-content: space-between;\n    margin: .35rem 0 .9rem;\n}\n.auth-options [data-testid="stCheckbox"] label {\n    font-size: .84rem !important; color: var(--muted) !important;\n}\n\n/* Inline error / notice (ChatGPT-style, inside the card) */\n.auth-error {\n    display: flex; align-items: flex-start; gap: 8px;\n    margin: 0 0 1rem; padding: 10px 14px; border-radius: 12px;\n    background: rgba(251,113,133,.12); border: 1px solid rgba(251,113,133,.4);\n    color: #fecdd3; font-size: .85rem; font-weight: 600;\n    animation: authFadeUp .25s ease;\n}\n.auth-notice {\n    display: flex; align-items: flex-start; gap: 8px;\n    margin: 0 0 1rem; padding: 10px 14px; border-radius: 12px;\n    background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.4);\n    color: #a7f3d0; font-size: .85rem; font-weight: 600;\n    animation: authFadeUp .25s ease;\n}\n.auth-busy {\n    display: flex; align-items: center; justify-content: center; gap: 9px;\n    margin: 0 0 1rem; padding: 10px; border-radius: 12px;\n    background: var(--accent-soft); border: 1px solid rgba(168,85,247,.35);\n    color: var(--accent2); font-size: .86rem; font-weight: 650;\n    animation: authFadeUp .25s ease;\n}\n.auth-busy .spin {\n    width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;\n    border: 2px solid rgba(168,85,247,.3); border-top-color: var(--accent2);\n    animation: authSpin .7s linear infinite;\n}\n\n/* Switch (create account / sign in) */\n.auth-switch {\n    text-align: center; color: var(--muted); font-size: .86rem;\n    margin-top: 1.1rem;\n}\n\n/* Guest button spacing */\n.auth-guest { margin-top: .4rem; }\n\n/* Footer */\n.auth-footer-links { margin-top: 2rem; }\n.auth-foot {\n    text-align: center; color: var(--muted); font-size: 12px;\n    margin-top: 14px;\n}\n</style>\n'

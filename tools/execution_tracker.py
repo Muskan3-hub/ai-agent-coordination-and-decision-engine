@@ -10,6 +10,13 @@ class ExecutionTracker:
     @staticmethod
     def log(tool_name, input_data, status, result):
 
+        # Internal monitoring (Milestone 4) - tool usage statistics.
+        try:
+            from monitoring.metrics import get_metrics
+            get_metrics().record_tool(tool_name)
+        except Exception:
+            pass
+
         # -------------------------
         # Create concise summaries
         # -------------------------

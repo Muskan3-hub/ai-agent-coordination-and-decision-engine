@@ -67,25 +67,28 @@ def test_keyword_fallback_chat():
     assert engine.decide("Hi there!") == "chat"
 
 
-def test_concept_explain_is_chat_but_code_explain_is_code_analysis():
+def test_concept_explain_is_chat_but_code_explain_is_documentation():
     engine = DecisionEngine(use_llm=False)
     # Issue 4: concept questions are chat, even in fallback mode
     assert engine.decide("Explain recursion") == "chat"
     assert engine.decide("Describe recursion") == "chat"
-    # But explaining a specific piece of code is code analysis (Task 2)
-    assert engine.decide("Explain this code") == "code_analysis"
-    assert engine.decide("Explain this source code") == "code_analysis"
+    # Explaining a specific piece of code is documentation (spec: explain
+    # -> Documentation Agent; analysis verbs stay code analysis).
+    assert engine.decide("Explain this code") == "documentation"
+    assert engine.decide("Explain this source code") == "documentation"
     # Documenting a function stays documentation
     assert engine.decide("Document this function") == "documentation"
+    # Complexity questions about code are code analysis
+    assert engine.decide("Explain time complexity") == "code_analysis"
 
 
 def test_keyword_fallback_code_analysis():
     engine = DecisionEngine(use_llm=False)
     assert engine.decide("Analyze this code") == "code_analysis"
-    assert engine.decide("Review this Python file") == "code_analysis"
+    assert engine.decide("Review this Python file") == "review"
     assert engine.decide("Check code quality") == "code_analysis"
     assert engine.decide("Find issues in this code") == "code_analysis"
-    assert engine.decide("Review this code") == "code_analysis"
+    assert engine.decide("Review this code") == "review"
     # Project-level analysis stays project
     assert engine.decide("Analyze this project") == "project"
 

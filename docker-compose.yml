@@ -1,0 +1,34 @@
+# Local / self-hosted deployment (Milestone 4).
+#   docker compose up --build
+# Environment variables come from .env (copy .env.example -> .env).
+services:
+  app:
+    build: .
+    command: streamlit run app.py --server.address=0.0.0.0 --server.port=8501 --server.headless=true
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=/data/enterprise.db
+    volumes:
+      - app_data:/data
+    depends_on:
+      - api
+
+  api:
+    build: .
+    command: python scripts/start_api.py
+    ports:
+      - "8787:8787"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=/data/enterprise.db
+      - API_HOST=0.0.0.0
+      - API_PORT=8787
+    volumes:
+      - app_data:/data
+
+volumes:
+  app_data:

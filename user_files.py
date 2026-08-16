@@ -143,6 +143,10 @@ class UserFiles:
         stored = os.path.basename(path).partition("_")[2]
         return self._rec(fid, stored, path)
 
+    def path_of(self, fid):
+        """Absolute on-disk path of a stored file, or None."""
+        return self._find_path(fid)
+
     def read_bytes(self, fid):
         path = self._find_path(fid)
         if not path:
@@ -205,6 +209,35 @@ class UserFiles:
             exts = {e.lstrip(".").lower() for e in extensions}
             files = [r for r in files if r["ext"] in exts]
         return files
+
+    # ------------------------- zip projects -------------------------
+    def extract_zip(self, fid):
+        """Extract an uploaded ZIP into a per-user project folder.
+
+        Returns the extraction root (``user_data/projects/<user_id>/<fid>/``)
+        or None when the file is missing / not a valid zip. Re-extracting
+        an already extracted archive is a no-op, so the same project can
+        be re-attached without duplicating files.
+        """
+        root = os.path.join(
+            os.path.dirname(BASE_DIR), "projects", self.user_id, str(fid)
+        )
+        marker = os.path.join(root, ".extracted")
+        if os.path.isdir(root) and os.path.exists(marker):
+            return root
+        data = self.read_bytes(fid)
+        if data is None:
+            return None
+        import io
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                os.makedirs(root, exist_ok=True)
+                zf.extractall(root)
+                with open(marker, "w") as f:
+                    f.write("ok")
+        except (zipfile.BadZipFile, OSError):
+            return None
+        return root
 
     # ------------------------- preview -------------------------
     def preview_info(self, fid):
