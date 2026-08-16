@@ -12,7 +12,7 @@ services:
       - key: PYTHONUNBUFFERED
         value: "true"
       - key: DATABASE_URL
-        value: /var/data/enterprise.db
+        value: /tmp/enterprise.db
       - key: GROQ_API_KEY
         sync: false
       - key: OPENAI_API_KEY
@@ -21,10 +21,7 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
-    disk:
-      name: sqlite-data
-      mountPath: /var/data
-      sizeGB: 1
+    
 
   - type: web
     name: ai-coding-assistant-api
@@ -36,14 +33,11 @@ services:
       - key: PYTHONUNBUFFERED
         value: "true"
       - key: DATABASE_URL
-        value: /var/data/enterprise.db
+        value: /tmp/enterprise.db
       - key: API_HOST
         value: 0.0.0.0
       - key: API_PORT
         value: 8787
       - key: GROQ_API_KEY
         sync: false
-    disk:
-      name: sqlite-data-api
-      mountPath: /var/data
-      sizeGB: 1
+    
